@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,8 +7,10 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Switch } from '@/components/ui/switch';
+import { Skeleton } from '@/components/ui/skeleton';
 import Layout from '@/components/Layout';
 import { useAuth } from '@/contexts/AuthContext';
+import { useProfile } from '@/hooks/useProfile';
 import { 
   User, 
   Settings, 
@@ -25,6 +27,7 @@ import {
 
 const Profile = () => {
   const { user } = useAuth();
+  const { profile, loading, updateProfile } = useProfile();
   const [isEditing, setIsEditing] = useState(false);
   const [notifications, setNotifications] = useState({
     workoutReminders: true,
@@ -33,15 +36,33 @@ const Profile = () => {
     achievements: true
   });
 
-  const [userProfile, setUserProfile] = useState({
-    name: user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'User',
-    email: user?.email || '',
-    age: 28,
-    height: '5\'10"',
-    weight: 165,
-    fitnessLevel: 'Intermediate',
-    goals: ['Lose Weight', 'Build Muscle', 'Improve Endurance']
+  // Form state for editing
+  const [formData, setFormData] = useState({
+    display_name: '',
+    age: '',
+    height: '',
+    weight: '',
+    fitness_level: '',
+    goals: [] as string[],
   });
+
+  // Update form data when profile loads
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        display_name: profile.display_name || user?.user_metadata?.display_name || user?.email?.split('@')[0] || '',
+        age: profile.age?.toString() || '',
+        height: profile.height || '',
+        weight: profile.weight?.toString() || '',
+        fitness_level: profile.fitness_level || '',
+        goals: profile.goals || ['Lose Weight', 'Build Muscle', 'Improve Endurance'],
+      });
+    }
+  }, [profile, user]);
+
+  const displayName = profile?.display_name || user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'User';
+  const userEmail = user?.email || '';
+  const displayGoals = profile?.goals || ['Lose Weight', 'Build Muscle', 'Improve Endurance'];
 
   const stats = {
     joinDate: 'January 2024',
@@ -58,11 +79,37 @@ const Profile = () => {
     { title: 'New PR: Bench Press', date: 'Today', icon: Trophy },
   ];
 
-  const handleSave = () => {
-    setIsEditing(false);
-    // TODO: Save profile data to backend
-    console.log('Profile saved:', userProfile);
+  const handleSave = async () => {
+    const updates = {
+      display_name: formData.display_name || null,
+      age: formData.age ? parseInt(formData.age) : null,
+      height: formData.height || null,
+      weight: formData.weight ? parseInt(formData.weight) : null,
+      fitness_level: formData.fitness_level || null,
+      goals: formData.goals.length > 0 ? formData.goals : null,
+    };
+
+    const success = await updateProfile(updates);
+    if (success) {
+      setIsEditing(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="space-y-6 max-w-4xl mx-auto">
+          <Skeleton className="h-32 w-full rounded-2xl" />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="h-24 w-full" />
+            ))}
+          </div>
+          <Skeleton className="h-96 w-full" />
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -75,7 +122,7 @@ const Profile = () => {
                 <Avatar className="w-24 h-24">
                   <AvatarImage src="/placeholder-avatar.jpg" />
                   <AvatarFallback className="text-2xl bg-white/20 text-white">
-                    {userProfile.name.split(' ').map(n => n[0]).join('')}
+                    {displayName.split(' ').map(n => n[0]).join('')}
                   </AvatarFallback>
                 </Avatar>
                 <Button 
@@ -87,10 +134,10 @@ const Profile = () => {
               </div>
               
               <div className="flex-1">
-                <h1 className="text-2xl font-bold mb-2">{userProfile.name}</h1>
-                <p className="opacity-90 mb-3">{userProfile.email}</p>
+                <h1 className="text-2xl font-bold mb-2">{displayName}</h1>
+                <p className="opacity-90 mb-3">{userEmail}</p>
                 <div className="flex flex-wrap gap-2">
-                  {userProfile.goals.map((goal) => (
+                  {displayGoals.map((goal) => (
                     <Badge key={goal} variant="secondary" className="bg-white/20 text-white border-white/30">
                       {goal}
                     </Badge>
@@ -132,8 +179,8 @@ const Profile = () => {
                     <Label htmlFor="name">Full Name</Label>
                     <Input
                       id="name"
-                      value={userProfile.name}
-                      onChange={(e) => setUserProfile({...userProfile, name: e.target.value})}
+                      value={formData.display_name}
+                      onChange={(e) => setFormData({...formData, display_name: e.target.value})}
                       disabled={!isEditing}
                     />
                   </div>
@@ -143,9 +190,8 @@ const Profile = () => {
                     <Input
                       id="email"
                       type="email"
-                      value={userProfile.email}
-                      onChange={(e) => setUserProfile({...userProfile, email: e.target.value})}
-                      disabled={!isEditing}
+                      value={userEmail}
+                      disabled={true}
                     />
                   </div>
                   
@@ -154,8 +200,8 @@ const Profile = () => {
                     <Input
                       id="age"
                       type="number"
-                      value={userProfile.age}
-                      onChange={(e) => setUserProfile({...userProfile, age: parseInt(e.target.value)})}
+                      value={formData.age}
+                      onChange={(e) => setFormData({...formData, age: e.target.value})}
                       disabled={!isEditing}
                     />
                   </div>
@@ -164,8 +210,8 @@ const Profile = () => {
                     <Label htmlFor="height">Height</Label>
                     <Input
                       id="height"
-                      value={userProfile.height}
-                      onChange={(e) => setUserProfile({...userProfile, height: e.target.value})}
+                      value={formData.height}
+                      onChange={(e) => setFormData({...formData, height: e.target.value})}
                       disabled={!isEditing}
                     />
                   </div>
@@ -175,8 +221,8 @@ const Profile = () => {
                     <Input
                       id="weight"
                       type="number"
-                      value={userProfile.weight}
-                      onChange={(e) => setUserProfile({...userProfile, weight: parseInt(e.target.value)})}
+                      value={formData.weight}
+                      onChange={(e) => setFormData({...formData, weight: e.target.value})}
                       disabled={!isEditing}
                     />
                   </div>
@@ -185,8 +231,8 @@ const Profile = () => {
                     <Label htmlFor="fitnessLevel">Fitness Level</Label>
                     <Input
                       id="fitnessLevel"
-                      value={userProfile.fitnessLevel}
-                      onChange={(e) => setUserProfile({...userProfile, fitnessLevel: e.target.value})}
+                      value={formData.fitness_level}
+                      onChange={(e) => setFormData({...formData, fitness_level: e.target.value})}
                       disabled={!isEditing}
                     />
                   </div>
