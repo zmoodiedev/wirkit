@@ -161,6 +161,15 @@ export const usePlannedItems = () => {
         await createFoodEntryFromPlannedItem(item);
       }
 
+      // If uncompleting, remove the corresponding entry
+      if (item.completed && item.type === 'workout') {
+        await removeWorkoutFromPlannedItem(item);
+      }
+      
+      if (item.completed && item.type === 'meal') {
+        await removeFoodEntryFromPlannedItem(item);
+      }
+
       setPlannedItems(prev => 
         prev.map(prevItem => 
           prevItem.id === id ? { ...prevItem, completed: !prevItem.completed } : prevItem
@@ -216,6 +225,44 @@ export const usePlannedItems = () => {
       toast.success('Meal added to your diet log!');
     } catch (error) {
       console.error('Error creating food entry from planned item:', error);
+    }
+  };
+
+  const removeWorkoutFromPlannedItem = async (item: PlannedItem) => {
+    try {
+      if (!user) return;
+
+      // Find and delete the workout created from this planned item
+      await supabase
+        .from('workouts')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('name', item.title)
+        .eq('date', item.date);
+
+      toast.success('Workout removed from your workout history!');
+    } catch (error) {
+      console.error('Error removing workout from planned item:', error);
+    }
+  };
+
+  const removeFoodEntryFromPlannedItem = async (item: PlannedItem) => {
+    try {
+      if (!user) return;
+
+      // Find and delete the food entry created from this planned item
+      const mealType = getMealTypeFromTime(item.time);
+      await supabase
+        .from('food_entries')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('name', item.title)
+        .eq('date', item.date)
+        .eq('meal_type', mealType);
+
+      toast.success('Meal removed from your diet log!');
+    } catch (error) {
+      console.error('Error removing food entry from planned item:', error);
     }
   };
 

@@ -230,14 +230,26 @@ export const useFitnessData = () => {
         .eq('user_id', user.id);
 
       if (!error) {
-        setFoodEntries(prev => prev.filter(entry => entry.id !== id));
+        const updatedEntries = foodEntries.filter(entry => entry.id !== id);
+        setFoodEntries(updatedEntries);
         
-        // Update daily stats
+        // Recalculate daily stats based on remaining entries
+        const newStats = updatedEntries.reduce((totals, entry) => ({
+          calories_consumed: totals.calories_consumed + entry.calories,
+          protein_consumed: totals.protein_consumed + entry.protein,
+          carbs_consumed: totals.carbs_consumed + entry.carbs,
+          fat_consumed: totals.fat_consumed + entry.fat
+        }), {
+          calories_consumed: 0,
+          protein_consumed: 0,
+          carbs_consumed: 0,
+          fat_consumed: 0
+        });
+
         await updateDailyStats({
-          calories_consumed: (dailyStats?.calories_consumed || 0) - entryToDelete.calories,
-          protein_consumed: (dailyStats?.protein_consumed || 0) - entryToDelete.protein,
-          carbs_consumed: (dailyStats?.carbs_consumed || 0) - entryToDelete.carbs,
-          fat_consumed: (dailyStats?.fat_consumed || 0) - entryToDelete.fat
+          ...newStats,
+          water_intake: dailyStats?.water_intake || 0,
+          workout_minutes: dailyStats?.workout_minutes || 0
         });
       }
     } catch (error) {
