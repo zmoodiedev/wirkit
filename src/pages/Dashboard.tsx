@@ -38,7 +38,7 @@ const Dashboard = () => {
     );
   }
 
-  const displayName = `', ' + ${profile?.display_name}` || '!';
+  const displayName = `Welcome back${displayName ? `, ${displayName}` : ""}!`
 
   return (
     <Layout>
