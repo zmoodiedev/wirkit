@@ -207,6 +207,51 @@ export type Database = {
         }
         Relationships: []
       }
+      planned_items: {
+        Row: {
+          calories: number | null
+          completed: boolean
+          created_at: string
+          date: string
+          difficulty: string | null
+          duration: number | null
+          id: string
+          time: string
+          title: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          calories?: number | null
+          completed?: boolean
+          created_at?: string
+          date?: string
+          difficulty?: string | null
+          duration?: number | null
+          id?: string
+          time: string
+          title: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          calories?: number | null
+          completed?: boolean
+          created_at?: string
+          date?: string
+          difficulty?: string | null
+          duration?: number | null
+          id?: string
+          time?: string
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           age: number | null

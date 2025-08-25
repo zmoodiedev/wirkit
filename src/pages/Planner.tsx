@@ -5,6 +5,9 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar } from '@/components/ui/calendar';
 import Layout from '@/components/Layout';
+import { AddPlannedItemDialog } from '@/components/AddPlannedItemDialog';
+import { usePlannedItems } from '@/hooks/usePlannedItems';
+import { format, isSameDay } from 'date-fns';
 import { 
   Plus, 
   Calendar as CalendarIcon, 
@@ -15,91 +18,25 @@ import {
   Edit3,
   Trash2,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
-
-interface PlannedItem {
-  id: string;
-  title: string;
-  type: 'workout' | 'meal';
-  time: string;
-  duration?: number;
-  calories?: number;
-  completed: boolean;
-  difficulty?: 'easy' | 'medium' | 'hard';
-}
 
 const Planner = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  
-  // Sample planned items
-  const [plannedItems, setPlannedItems] = useState<PlannedItem[]>([
-    {
-      id: '1',
-      title: 'Morning Cardio',
-      type: 'workout',
-      time: '07:00',
-      duration: 30,
-      completed: true,
-      difficulty: 'medium'
-    },
-    {
-      id: '2',
-      title: 'Protein Smoothie',
-      type: 'meal',
-      time: '08:00',
-      calories: 320,
-      completed: true
-    },
-    {
-      id: '3',
-      title: 'Push Day Workout',
-      type: 'workout',
-      time: '17:00',
-      duration: 60,
-      completed: false,
-      difficulty: 'hard'
-    },
-    {
-      id: '4',
-      title: 'Grilled Salmon Dinner',
-      type: 'meal',
-      time: '19:00',
-      calories: 450,
-      completed: false
-    },
-    {
-      id: '5',
-      title: 'Evening Yoga',
-      type: 'workout',
-      time: '21:00',
-      duration: 20,
-      completed: false,
-      difficulty: 'easy'
-    }
-  ]);
-
-  const weekPlan = [
-    { day: 'Mon', workouts: 2, meals: 4, completed: true },
-    { day: 'Tue', workouts: 1, meals: 4, completed: true },
-    { day: 'Wed', workouts: 2, meals: 3, completed: false },
-    { day: 'Thu', workouts: 1, meals: 4, completed: false },
-    { day: 'Fri', workouts: 2, meals: 4, completed: false },
-    { day: 'Sat', workouts: 1, meals: 3, completed: false },
-    { day: 'Sun', workouts: 0, meals: 3, completed: false }
-  ];
-
-  const toggleComplete = (id: string) => {
-    setPlannedItems(items =>
-      items.map(item =>
-        item.id === id ? { ...item, completed: !item.completed } : item
-      )
-    );
-  };
+  const { 
+    plannedItems, 
+    loading, 
+    addPlannedItem, 
+    deletePlannedItem, 
+    toggleComplete 
+  } = usePlannedItems();
 
   const getTodayStats = () => {
-    const workouts = plannedItems.filter(item => item.type === 'workout');
-    const meals = plannedItems.filter(item => item.type === 'meal');
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const todayItems = plannedItems.filter(item => item.date === today);
+    const workouts = todayItems.filter(item => item.type === 'workout');
+    const meals = todayItems.filter(item => item.type === 'meal');
     
     return {
       totalWorkouts: workouts.length,
@@ -111,7 +48,22 @@ const Planner = () => {
     };
   };
 
+  const getItemsForDate = (date: Date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    return plannedItems.filter(item => item.date === dateStr);
+  };
+
   const stats = getTodayStats();
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -176,15 +128,17 @@ const Planner = () => {
                       })}
                     </CardDescription>
                   </div>
-                  <Button size="sm">
-                    <Plus size={16} className="mr-2" />
-                    Add Item
-                  </Button>
+                  <AddPlannedItemDialog onAdd={addPlannedItem}>
+                    <Button size="sm">
+                      <Plus size={16} className="mr-2" />
+                      Add Item
+                    </Button>
+                  </AddPlannedItemDialog>
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {plannedItems
+                  {getItemsForDate(new Date())
                     .sort((a, b) => a.time.localeCompare(b.time))
                     .map((item) => {
                       const Icon = item.type === 'workout' ? Dumbbell : Apple;
@@ -242,10 +196,11 @@ const Planner = () => {
                           </div>
                           
                           <div className="flex items-center gap-2">
-                            <Button size="sm" variant="ghost">
-                              <Edit3 size={14} />
-                            </Button>
-                            <Button size="sm" variant="ghost">
+                            <Button 
+                              size="sm" 
+                              variant="ghost"
+                              onClick={() => deletePlannedItem(item.id)}
+                            >
                               <Trash2 size={14} />
                             </Button>
                           </div>
@@ -253,6 +208,12 @@ const Planner = () => {
                       );
                     })}
                 </div>
+
+                {getItemsForDate(new Date()).length === 0 && (
+                  <div className="text-center text-muted-foreground py-8">
+                    No items planned for today
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -260,19 +221,27 @@ const Planner = () => {
             <div className="grid grid-cols-2 gap-4">
               <Card className="shadow-card">
                 <CardContent className="p-4">
-                  <Button className="w-full h-20 flex-col gap-2 bg-gradient-primary hover:shadow-glow transition-all">
-                    <Dumbbell size={24} />
-                    <span>Add Workout</span>
-                  </Button>
+                  <AddPlannedItemDialog 
+                    onAdd={(item) => addPlannedItem({ ...item, type: 'workout' })}
+                  >
+                    <Button className="w-full h-20 flex-col gap-2 bg-gradient-primary hover:shadow-glow transition-all">
+                      <Dumbbell size={24} />
+                      <span>Add Workout</span>
+                    </Button>
+                  </AddPlannedItemDialog>
                 </CardContent>
               </Card>
               
               <Card className="shadow-card">
                 <CardContent className="p-4">
-                  <Button variant="outline" className="w-full h-20 flex-col gap-2">
-                    <Apple size={24} />
-                    <span>Plan Meal</span>
-                  </Button>
+                  <AddPlannedItemDialog 
+                    onAdd={(item) => addPlannedItem({ ...item, type: 'meal' })}
+                  >
+                    <Button variant="outline" className="w-full h-20 flex-col gap-2">
+                      <Apple size={24} />
+                      <span>Plan Meal</span>
+                    </Button>
+                  </AddPlannedItemDialog>
                 </CardContent>
               </Card>
             </div>
@@ -283,51 +252,13 @@ const Planner = () => {
               <CardHeader>
                 <CardTitle>Weekly Overview</CardTitle>
                 <CardDescription>
-                  Your fitness plan for this week
+                  Your scheduled items for this week
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {weekPlan.map((day) => (
-                    <div 
-                      key={day.day} 
-                      className="flex items-center justify-between p-4 bg-muted/50 rounded-lg"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="font-medium w-12">{day.day}</div>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <div className="flex items-center gap-1">
-                            <Dumbbell size={14} />
-                            {day.workouts} workouts
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Apple size={14} />
-                            {day.meals} meals
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        {day.completed ? (
-                          <Badge className="bg-success">
-                            <CheckCircle size={12} className="mr-1" />
-                            Complete
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline">
-                            <AlertCircle size={12} className="mr-1" />
-                            Pending
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                <div className="text-center text-muted-foreground py-8">
+                  Weekly overview coming soon. Use the Calendar tab to view items by date.
                 </div>
-                
-                <Button className="w-full mt-4 bg-gradient-primary hover:shadow-glow transition-all">
-                  <Target size={16} className="mr-2" />
-                  Generate Weekly Plan
-                </Button>
               </CardContent>
             </Card>
           </TabsContent>
@@ -360,13 +291,56 @@ const Planner = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    <div className="text-center text-muted-foreground py-8">
-                      No items planned for this date
-                    </div>
-                    <Button className="w-full bg-gradient-primary hover:shadow-glow transition-all">
-                      <Plus size={16} className="mr-2" />
-                      Add to This Date
-                    </Button>
+                    {selectedDate && getItemsForDate(selectedDate).length > 0 ? (
+                      getItemsForDate(selectedDate)
+                        .sort((a, b) => a.time.localeCompare(b.time))
+                        .map((item) => {
+                          const Icon = item.type === 'workout' ? Dumbbell : Apple;
+                          
+                          return (
+                            <div 
+                              key={item.id} 
+                              className={`flex items-center gap-3 p-3 rounded-lg border ${
+                                item.completed 
+                                  ? 'bg-success/10 border-success' 
+                                  : 'bg-card'
+                              }`}
+                            >
+                              <Icon size={16} className="text-primary" />
+                              <div className="flex-1">
+                                <div className={`font-medium ${item.completed ? 'line-through text-muted-foreground' : ''}`}>
+                                  {item.title}
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  {item.time} {item.duration && `• ${item.duration}m`} {item.calories && `• ${item.calories} cal`}
+                                </div>
+                              </div>
+                              <Button 
+                                size="sm" 
+                                variant="ghost"
+                                onClick={() => deletePlannedItem(item.id)}
+                              >
+                                <Trash2 size={14} />
+                              </Button>
+                            </div>
+                          );
+                        })
+                    ) : (
+                      <div className="text-center text-muted-foreground py-8">
+                        No items planned for this date
+                      </div>
+                    )}
+                    <AddPlannedItemDialog 
+                      onAdd={(item) => addPlannedItem({ 
+                        ...item, 
+                        date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')
+                      })}
+                    >
+                      <Button className="w-full bg-gradient-primary hover:shadow-glow transition-all">
+                        <Plus size={16} className="mr-2" />
+                        Add to This Date
+                      </Button>
+                    </AddPlannedItemDialog>
                   </div>
                 </CardContent>
               </Card>
