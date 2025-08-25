@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
 import {
   Home,
   Dumbbell,
@@ -10,12 +12,14 @@ import {
   MessageCircle,
   User,
   Menu,
-  X
+  X,
+  LogOut
 } from 'lucide-react';
 
 const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const { signOut } = useAuth();
 
   const navigationItems = [
     { path: '/dashboard', icon: Home, label: 'Dashboard' },
@@ -105,7 +109,7 @@ const Navigation = () => {
             })}
           </nav>
 
-          <div className="p-4 border-t border-border">
+          <div className="p-4 border-t border-border space-y-2">
             <Link
               to="/profile"
               className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-accent transition-all"
@@ -113,6 +117,14 @@ const Navigation = () => {
               <User size={20} />
               <span className="font-medium">Profile</span>
             </Link>
+            <Button
+              onClick={signOut}
+              variant="ghost"
+              className="w-full justify-start gap-3 px-4 py-3 text-muted-foreground hover:text-foreground"
+            >
+              <LogOut size={20} />
+              <span className="font-medium">Sign Out</span>
+            </Button>
           </div>
         </div>
       </aside>
