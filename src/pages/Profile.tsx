@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Switch } from '@/components/ui/switch';
 import Layout from '@/components/Layout';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   User, 
   Settings, 
@@ -23,6 +24,7 @@ import {
 } from 'lucide-react';
 
 const Profile = () => {
+  const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [notifications, setNotifications] = useState({
     workoutReminders: true,
@@ -32,8 +34,8 @@ const Profile = () => {
   });
 
   const [userProfile, setUserProfile] = useState({
-    name: 'Alex Johnson',
-    email: 'alex.johnson@email.com',
+    name: user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'User',
+    email: user?.email || '',
     age: 28,
     height: '5\'10"',
     weight: 165,
