@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Layout from '@/components/Layout';
 import { 
@@ -18,91 +19,35 @@ import {
   Edit3,
   Trash2
 } from 'lucide-react';
+import { useFitnessData } from '@/hooks/useFitnessData';
 
-interface FoodEntry {
-  id: string;
-  name: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-  meal: 'breakfast' | 'lunch' | 'dinner' | 'snack';
-  time: string;
-}
 
 const Diet = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [waterIntake, setWaterIntake] = useState(6);
-  
-  const dailyGoals = {
-    calories: 2000,
-    protein: 150,
-    carbs: 250,
-    fat: 67,
-    water: 8
-  };
+  const { userGoals, dailyStats, foodEntries, loading, updateWaterIntake } = useFitnessData();
 
-  const [foodEntries, setFoodEntries] = useState<FoodEntry[]>([
-    {
-      id: '1',
-      name: 'Oatmeal with Berries',
-      calories: 320,
-      protein: 12,
-      carbs: 54,
-      fat: 6,
-      meal: 'breakfast',
-      time: '08:30'
-    },
-    {
-      id: '2',
-      name: 'Grilled Chicken Salad',
-      calories: 450,
-      protein: 35,
-      carbs: 20,
-      fat: 25,
-      meal: 'lunch',
-      time: '12:45'
-    },
-    {
-      id: '3',
-      name: 'Protein Shake',
-      calories: 250,
-      protein: 25,
-      carbs: 15,
-      fat: 8,
-      meal: 'snack',
-      time: '15:30'
-    },
-    {
-      id: '4',
-      name: 'Salmon with Rice',
-      calories: 520,
-      protein: 40,
-      carbs: 45,
-      fat: 18,
-      meal: 'dinner',
-      time: '19:00'
-    }
-  ]);
-
-  const getTotalMacros = () => {
-    return foodEntries.reduce((total, entry) => ({
-      calories: total.calories + entry.calories,
-      protein: total.protein + entry.protein,
-      carbs: total.carbs + entry.carbs,
-      fat: total.fat + entry.fat
-    }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
-  };
+  if (loading) {
+    return (
+      <Layout>
+        <div className="space-y-6">
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-96 w-full" />
+        </div>
+      </Layout>
+    );
+  }
 
   const getMealEntries = (meal: string) => {
-    return foodEntries.filter(entry => entry.meal === meal);
+    return foodEntries.filter(entry => entry.meal_type === meal);
   };
 
   const getMealCalories = (meal: string) => {
     return getMealEntries(meal).reduce((total, entry) => total + entry.calories, 0);
   };
 
-  const macros = getTotalMacros();
+  const handleWaterUpdate = (newIntake: number) => {
+    updateWaterIntake(newIntake);
+  };
 
   const mealSections = [
     { id: 'breakfast', name: 'Breakfast', icon: Coffee },
@@ -125,24 +70,24 @@ const Diet = () => {
           <CardContent>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
               <div className="text-center">
-                <div className="text-2xl font-bold">{macros.calories}</div>
-                <div className="text-sm opacity-80">of {dailyGoals.calories} cal</div>
+                <div className="text-2xl font-bold">{dailyStats?.calories_consumed || 0}</div>
+                <div className="text-sm opacity-80">of {userGoals?.daily_calories || 2000} cal</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold">{macros.protein}g</div>
+                <div className="text-2xl font-bold">{dailyStats?.protein_consumed || 0}g</div>
                 <div className="text-sm opacity-80">Protein</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold">{macros.carbs}g</div>
+                <div className="text-2xl font-bold">{dailyStats?.carbs_consumed || 0}g</div>
                 <div className="text-sm opacity-80">Carbs</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold">{macros.fat}g</div>
+                <div className="text-2xl font-bold">{dailyStats?.fat_consumed || 0}g</div>
                 <div className="text-sm opacity-80">Fat</div>
               </div>
             </div>
             <Progress 
-              value={(macros.calories / dailyGoals.calories) * 100} 
+              value={((dailyStats?.calories_consumed || 0) / (userGoals?.daily_calories || 2000)) * 100} 
               className="bg-white/20"
             />
           </CardContent>
@@ -190,7 +135,12 @@ const Diet = () => {
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                              <span className="text-xs text-muted-foreground">{entry.time}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(entry.logged_at).toLocaleTimeString('en-US', { 
+                                  hour: '2-digit', 
+                                  minute: '2-digit' 
+                                })}
+                              </span>
                               <Button size="sm" variant="ghost">
                                 <Edit3 size={14} />
                               </Button>
@@ -256,25 +206,25 @@ const Diet = () => {
               <CardContent>
                 <div className="text-center mb-6">
                   <div className="text-4xl font-bold text-blue-500 mb-2">
-                    {waterIntake}/{dailyGoals.water}
+                    {dailyStats?.water_intake || 0}/{userGoals?.daily_water || 8}
                   </div>
                   <div className="text-muted-foreground">glasses today</div>
                   <Progress 
-                    value={(waterIntake / dailyGoals.water) * 100} 
+                    value={((dailyStats?.water_intake || 0) / (userGoals?.daily_water || 8)) * 100} 
                     className="mt-4" 
                   />
                 </div>
                 
                 <div className="grid grid-cols-4 gap-2 mb-4">
-                  {Array.from({ length: dailyGoals.water }).map((_, index) => (
+                  {Array.from({ length: userGoals?.daily_water || 8 }).map((_, index) => (
                     <div
                       key={index}
                       className={`aspect-square rounded-lg flex items-center justify-center transition-all cursor-pointer ${
-                        index < waterIntake
+                        index < (dailyStats?.water_intake || 0)
                           ? 'bg-blue-500 text-white'
                           : 'bg-muted hover:bg-accent'
                       }`}
-                      onClick={() => setWaterIntake(index < waterIntake ? index : index + 1)}
+                      onClick={() => handleWaterUpdate(index < (dailyStats?.water_intake || 0) ? index : index + 1)}
                     >
                       <Droplets size={20} />
                     </div>
@@ -283,7 +233,7 @@ const Diet = () => {
                 
                 <div className="flex gap-2">
                   <Button 
-                    onClick={() => setWaterIntake(Math.min(waterIntake + 1, dailyGoals.water))}
+                    onClick={() => handleWaterUpdate(Math.min((dailyStats?.water_intake || 0) + 1, userGoals?.daily_water || 8))}
                     className="flex-1 bg-blue-500 hover:bg-blue-600"
                   >
                     <Plus size={16} className="mr-2" />
@@ -291,7 +241,7 @@ const Diet = () => {
                   </Button>
                   <Button 
                     variant="outline"
-                    onClick={() => setWaterIntake(Math.max(waterIntake - 1, 0))}
+                    onClick={() => handleWaterUpdate(Math.max((dailyStats?.water_intake || 0) - 1, 0))}
                     className="flex-1"
                   >
                     Remove Glass

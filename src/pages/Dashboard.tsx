@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
 import Layout from '@/components/Layout';
 import { 
   TrendingUp, 
@@ -13,22 +14,31 @@ import {
   MessageCircle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useFitnessData } from '@/hooks/useFitnessData';
 
 const Dashboard = () => {
-  // Sample data - replace with real data from your state management
-  const todayStats = {
-    caloriesConsumed: 1450,
-    caloriesGoal: 2000,
-    workoutTime: 45,
-    workoutGoal: 60,
-    waterIntake: 6,
-    waterGoal: 8
-  };
+  const { userGoals, dailyStats, profile, loading } = useFitnessData();
 
-  const weekProgress = {
-    workoutsCompleted: 4,
-    workoutsPlanned: 6
-  };
+  if (loading) {
+    return (
+      <Layout>
+        <div className="space-y-6">
+          <Skeleton className="h-32 w-full rounded-2xl" />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="h-24 w-full" />
+            ))}
+          </div>
+          <div className="grid lg:grid-cols-2 gap-6">
+            <Skeleton className="h-48 w-full" />
+            <Skeleton className="h-48 w-full" />
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  const displayName = profile?.display_name || 'there';
 
   return (
     <Layout>
@@ -36,10 +46,13 @@ const Dashboard = () => {
         {/* Welcome Section */}
         <div className="bg-gradient-hero rounded-2xl p-6 text-white">
           <h1 className="text-2xl lg:text-3xl font-bold mb-2">
-            Welcome back, Alex! 💪
+            Welcome back, {displayName}! 💪
           </h1>
           <p className="opacity-90">
-            You're doing great! Let's keep the momentum going.
+            {dailyStats?.calories_consumed ? 
+              "You're making great progress today!" : 
+              "Ready to start your fitness journey today?"
+            }
           </p>
         </div>
 
@@ -49,10 +62,10 @@ const Dashboard = () => {
             <CardContent className="p-4 text-center">
               <Flame className="mx-auto mb-2 text-orange-500" size={24} />
               <div className="text-2xl font-bold text-foreground">
-                {todayStats.caloriesConsumed}
+                {dailyStats?.calories_consumed || 0}
               </div>
               <div className="text-xs text-muted-foreground">
-                of {todayStats.caloriesGoal} cal
+                of {userGoals?.daily_calories || 2000} cal
               </div>
             </CardContent>
           </Card>
@@ -61,10 +74,10 @@ const Dashboard = () => {
             <CardContent className="p-4 text-center">
               <Clock className="mx-auto mb-2 text-primary" size={24} />
               <div className="text-2xl font-bold text-foreground">
-                {todayStats.workoutTime}m
+                {dailyStats?.workout_minutes || 0}m
               </div>
               <div className="text-xs text-muted-foreground">
-                of {todayStats.workoutGoal}m
+                of {userGoals?.daily_workout_minutes || 60}m
               </div>
             </CardContent>
           </Card>
@@ -73,10 +86,10 @@ const Dashboard = () => {
             <CardContent className="p-4 text-center">
               <Target className="mx-auto mb-2 text-blue-500" size={24} />
               <div className="text-2xl font-bold text-foreground">
-                {todayStats.waterIntake}
+                {dailyStats?.water_intake || 0}
               </div>
               <div className="text-xs text-muted-foreground">
-                of {todayStats.waterGoal} glasses
+                of {userGoals?.daily_water || 8} glasses
               </div>
             </CardContent>
           </Card>
@@ -85,10 +98,10 @@ const Dashboard = () => {
             <CardContent className="p-4 text-center">
               <TrendingUp className="mx-auto mb-2 text-success" size={24} />
               <div className="text-2xl font-bold text-foreground">
-                {weekProgress.workoutsCompleted}
+                0
               </div>
               <div className="text-xs text-muted-foreground">
-                of {weekProgress.workoutsPlanned} workouts
+                of {userGoals?.weekly_workouts || 5} workouts
               </div>
             </CardContent>
           </Card>
@@ -107,10 +120,10 @@ const Dashboard = () => {
               <div>
                 <div className="flex justify-between text-sm mb-2">
                   <span>Consumed</span>
-                  <span>{todayStats.caloriesConsumed}/{todayStats.caloriesGoal} cal</span>
+                  <span>{dailyStats?.calories_consumed || 0}/{userGoals?.daily_calories || 2000} cal</span>
                 </div>
                 <Progress 
-                  value={(todayStats.caloriesConsumed / todayStats.caloriesGoal) * 100} 
+                  value={((dailyStats?.calories_consumed || 0) / (userGoals?.daily_calories || 2000)) * 100} 
                   className="h-3" 
                 />
               </div>
@@ -134,10 +147,10 @@ const Dashboard = () => {
               <div>
                 <div className="flex justify-between text-sm mb-2">
                   <span>Time Active</span>
-                  <span>{todayStats.workoutTime}/{todayStats.workoutGoal} min</span>
+                  <span>{dailyStats?.workout_minutes || 0}/{userGoals?.daily_workout_minutes || 60} min</span>
                 </div>
                 <Progress 
-                  value={(todayStats.workoutTime / todayStats.workoutGoal) * 100} 
+                  value={((dailyStats?.workout_minutes || 0) / (userGoals?.daily_workout_minutes || 60)) * 100} 
                   className="h-3" 
                 />
               </div>

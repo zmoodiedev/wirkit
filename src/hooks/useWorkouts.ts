@@ -1,0 +1,289 @@
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+
+export interface ExerciseSet {
+  id: string;
+  reps: number;
+  weight?: number;
+  is_completed: boolean;
+  set_order: number;
+}
+
+export interface Exercise {
+  id: string;
+  name: string;
+  category: string;
+  rest_time: number;
+  sets: ExerciseSet[];
+}
+
+export interface Workout {
+  id: string;
+  name: string;
+  description?: string;
+  date: string;
+  duration_minutes: number;
+  is_completed: boolean;
+  exercises: Exercise[];
+}
+
+export const useWorkouts = () => {
+  const [currentWorkout, setCurrentWorkout] = useState<Workout | null>(null);
+  const [isWorkoutActive, setIsWorkoutActive] = useState(false);
+  const [workoutTimer, setWorkoutTimer] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  const fetchTodayWorkout = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Fetch today's workout
+      const { data: workoutData } = await supabase
+        .from('workouts')
+        .select(`
+          *,
+          exercises (
+            *,
+            exercise_sets (*)
+          )
+        `)
+        .eq('user_id', user.id)
+        .eq('date', today)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (workoutData) {
+        // Transform the data to match our interface
+        const workout: Workout = {
+          ...workoutData,
+          exercises: workoutData.exercises.map((exercise: any) => ({
+            ...exercise,
+            sets: exercise.exercise_sets.sort((a: any, b: any) => a.set_order - b.set_order)
+          }))
+        };
+        setCurrentWorkout(workout);
+      } else {
+        setCurrentWorkout(null);
+      }
+    } catch (error) {
+      console.error('Error fetching workout:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createSampleWorkout = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const today = new Date().toISOString().split('T')[0];
+
+      // Create a new workout
+      const { data: workout, error: workoutError } = await supabase
+        .from('workouts')
+        .insert({
+          user_id: user.id,
+          name: 'Push Day Workout',
+          description: 'Chest, Shoulders & Triceps',
+          date: today
+        })
+        .select()
+        .single();
+
+      if (workoutError || !workout) {
+        console.error('Error creating workout:', workoutError);
+        return;
+      }
+
+      // Sample exercises data
+      const exercisesData = [
+        {
+          name: 'Bench Press',
+          category: 'Chest',
+          rest_time: 120,
+          sets: [
+            { reps: 10, weight: 135, set_order: 1 },
+            { reps: 8, weight: 155, set_order: 2 },
+            { reps: 6, weight: 175, set_order: 3 }
+          ]
+        },
+        {
+          name: 'Squats',
+          category: 'Legs',
+          rest_time: 180,
+          sets: [
+            { reps: 12, weight: 185, set_order: 1 },
+            { reps: 10, weight: 205, set_order: 2 },
+            { reps: 8, weight: 225, set_order: 3 }
+          ]
+        },
+        {
+          name: 'Pull-ups',
+          category: 'Back',
+          rest_time: 90,
+          sets: [
+            { reps: 8, set_order: 1 },
+            { reps: 6, set_order: 2 },
+            { reps: 4, set_order: 3 }
+          ]
+        }
+      ];
+
+      // Create exercises and their sets
+      for (const exerciseData of exercisesData) {
+        const { data: exercise, error: exerciseError } = await supabase
+          .from('exercises')
+          .insert({
+            workout_id: workout.id,
+            name: exerciseData.name,
+            category: exerciseData.category,
+            rest_time: exerciseData.rest_time
+          })
+          .select()
+          .single();
+
+        if (exerciseError || !exercise) {
+          console.error('Error creating exercise:', exerciseError);
+          continue;
+        }
+
+        // Create sets for this exercise
+        const setsToInsert = exerciseData.sets.map(set => ({
+          exercise_id: exercise.id,
+          reps: set.reps,
+          weight: set.weight,
+          set_order: set.set_order,
+          is_completed: false
+        }));
+
+        const { error: setsError } = await supabase
+          .from('exercise_sets')
+          .insert(setsToInsert);
+
+        if (setsError) {
+          console.error('Error creating sets:', setsError);
+        }
+      }
+
+      // Fetch the complete workout with exercises and sets
+      await fetchTodayWorkout();
+    } catch (error) {
+      console.error('Error creating sample workout:', error);
+    }
+  };
+
+  const toggleSet = async (exerciseId: string, setId: string) => {
+    if (!currentWorkout) return;
+
+    try {
+      // Find the current set
+      const exercise = currentWorkout.exercises.find(e => e.id === exerciseId);
+      const set = exercise?.sets.find(s => s.id === setId);
+      
+      if (!set) return;
+
+      // Toggle the completion status
+      const { error } = await supabase
+        .from('exercise_sets')
+        .update({ is_completed: !set.is_completed })
+        .eq('id', setId);
+
+      if (!error) {
+        // Update local state
+        setCurrentWorkout(prev => {
+          if (!prev) return prev;
+          
+          return {
+            ...prev,
+            exercises: prev.exercises.map(exercise => 
+              exercise.id === exerciseId
+                ? {
+                    ...exercise,
+                    sets: exercise.sets.map(s => 
+                      s.id === setId 
+                        ? { ...s, is_completed: !s.is_completed }
+                        : s
+                    )
+                  }
+                : exercise
+            )
+          };
+        });
+      }
+    } catch (error) {
+      console.error('Error toggling set:', error);
+    }
+  };
+
+  const updateSetWeight = async (exerciseId: string, setId: string, weight: number) => {
+    if (!currentWorkout) return;
+
+    try {
+      const { error } = await supabase
+        .from('exercise_sets')
+        .update({ weight })
+        .eq('id', setId);
+
+      if (!error) {
+        // Update local state
+        setCurrentWorkout(prev => {
+          if (!prev) return prev;
+          
+          return {
+            ...prev,
+            exercises: prev.exercises.map(exercise => 
+              exercise.id === exerciseId
+                ? {
+                    ...exercise,
+                    sets: exercise.sets.map(s => 
+                      s.id === setId 
+                        ? { ...s, weight }
+                        : s
+                    )
+                  }
+                : exercise
+            )
+          };
+        });
+      }
+    } catch (error) {
+      console.error('Error updating set weight:', error);
+    }
+  };
+
+  const getCompletedSets = () => {
+    if (!currentWorkout) return 0;
+    return currentWorkout.exercises.reduce((total, exercise) => 
+      total + exercise.sets.filter(set => set.is_completed).length, 0
+    );
+  };
+
+  const getTotalSets = () => {
+    if (!currentWorkout) return 0;
+    return currentWorkout.exercises.reduce((total, exercise) => total + exercise.sets.length, 0);
+  };
+
+  useEffect(() => {
+    fetchTodayWorkout();
+  }, []);
+
+  return {
+    currentWorkout,
+    isWorkoutActive,
+    setIsWorkoutActive,
+    workoutTimer,
+    setWorkoutTimer,
+    loading,
+    createSampleWorkout,
+    toggleSet,
+    updateSetWeight,
+    getCompletedSets,
+    getTotalSets,
+    refetch: fetchTodayWorkout
+  };
+};
