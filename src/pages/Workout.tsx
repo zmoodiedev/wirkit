@@ -246,7 +246,7 @@ const Workout = () => {
         />
 
         {/* Complete Workout */}
-        {getCompletedSets() === getTotalSets() && (
+        {getTotalSets() > 0 && getCompletedSets() === getTotalSets() && (
           <Card className="bg-gradient-success text-white border-0 shadow-elevated">
             <CardContent className="p-6 text-center">
               <TrendingUp size={48} className="mx-auto mb-4" />
