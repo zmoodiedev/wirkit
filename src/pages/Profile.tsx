@@ -11,6 +11,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import Layout from '@/components/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
+import { useProfileStats } from '@/hooks/useProfileStats';
+import { useUserPreferences } from '@/hooks/useUserPreferences';
 import { 
   User, 
   Settings, 
@@ -27,14 +29,12 @@ import {
 
 const Profile = () => {
   const { user } = useAuth();
-  const { profile, loading, updateProfile } = useProfile();
+  const { profile, loading: profileLoading, updateProfile } = useProfile();
+  const { stats, achievements, loading: statsLoading } = useProfileStats();
+  const { preferences, loading: prefsLoading, updatePreferences } = useUserPreferences();
   const [isEditing, setIsEditing] = useState(false);
-  const [notifications, setNotifications] = useState({
-    workoutReminders: true,
-    mealReminders: true,
-    progressUpdates: false,
-    achievements: true
-  });
+
+  const loading = profileLoading || statsLoading || prefsLoading;
 
   // Form state for editing
   const [formData, setFormData] = useState({
@@ -63,21 +63,6 @@ const Profile = () => {
   const displayName = profile?.display_name || user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'User';
   const userEmail = user?.email || '';
   const displayGoals = profile?.goals || ['Lose Weight', 'Build Muscle', 'Improve Endurance'];
-
-  const stats = {
-    joinDate: 'January 2024',
-    totalWorkouts: 48,
-    streakDays: 12,
-    achievements: 8,
-    avgWeeklyWorkouts: 4.2
-  };
-
-  const achievements = [
-    { title: 'First Week Complete', date: '2 weeks ago', icon: Trophy },
-    { title: '10 Workouts Done', date: '1 week ago', icon: Activity },
-    { title: 'Protein Goal Met', date: '3 days ago', icon: Target },
-    { title: 'New PR: Bench Press', date: 'Today', icon: Trophy },
-  ];
 
   const handleSave = async () => {
     const updates = {
@@ -258,7 +243,7 @@ const Profile = () => {
               <Card className="text-center shadow-card">
                 <CardContent className="p-4">
                   <Calendar className="mx-auto mb-2 text-primary" size={24} />
-                  <div className="text-2xl font-bold">{stats.totalWorkouts}</div>
+                  <div className="text-2xl font-bold">{stats?.totalWorkouts || 0}</div>
                   <div className="text-xs text-muted-foreground">Total Workouts</div>
                 </CardContent>
               </Card>
@@ -266,7 +251,7 @@ const Profile = () => {
               <Card className="text-center shadow-card">
                 <CardContent className="p-4">
                   <Activity className="mx-auto mb-2 text-success" size={24} />
-                  <div className="text-2xl font-bold">{stats.streakDays}</div>
+                  <div className="text-2xl font-bold">{stats?.streakDays || 0}</div>
                   <div className="text-xs text-muted-foreground">Day Streak</div>
                 </CardContent>
               </Card>
@@ -274,7 +259,7 @@ const Profile = () => {
               <Card className="text-center shadow-card">
                 <CardContent className="p-4">
                   <Trophy className="mx-auto mb-2 text-yellow-500" size={24} />
-                  <div className="text-2xl font-bold">{stats.achievements}</div>
+                  <div className="text-2xl font-bold">{stats?.achievements || 0}</div>
                   <div className="text-xs text-muted-foreground">Achievements</div>
                 </CardContent>
               </Card>
@@ -282,7 +267,7 @@ const Profile = () => {
               <Card className="text-center shadow-card">
                 <CardContent className="p-4">
                   <Target className="mx-auto mb-2 text-primary" size={24} />
-                  <div className="text-2xl font-bold">{stats.avgWeeklyWorkouts}</div>
+                  <div className="text-2xl font-bold">{stats?.avgWeeklyWorkouts || 0}</div>
                   <div className="text-xs text-muted-foreground">Avg/Week</div>
                 </CardContent>
               </Card>
@@ -290,7 +275,7 @@ const Profile = () => {
               <Card className="text-center shadow-card">
                 <CardContent className="p-4">
                   <User className="mx-auto mb-2 text-muted-foreground" size={24} />
-                  <div className="text-lg font-bold">{stats.joinDate}</div>
+                  <div className="text-lg font-bold">{stats?.joinDate || 'Recently'}</div>
                   <div className="text-xs text-muted-foreground">Member Since</div>
                 </CardContent>
               </Card>
@@ -317,9 +302,9 @@ const Profile = () => {
                     </div>
                   </div>
                   <Switch
-                    checked={notifications.workoutReminders}
+                    checked={preferences?.workout_reminders || false}
                     onCheckedChange={(checked) =>
-                      setNotifications({...notifications, workoutReminders: checked})
+                      updatePreferences({ workout_reminders: checked })
                     }
                   />
                 </div>
@@ -332,9 +317,9 @@ const Profile = () => {
                     </div>
                   </div>
                   <Switch
-                    checked={notifications.mealReminders}
+                    checked={preferences?.meal_reminders || false}
                     onCheckedChange={(checked) =>
-                      setNotifications({...notifications, mealReminders: checked})
+                      updatePreferences({ meal_reminders: checked })
                     }
                   />
                 </div>
@@ -347,9 +332,9 @@ const Profile = () => {
                     </div>
                   </div>
                   <Switch
-                    checked={notifications.progressUpdates}
+                    checked={preferences?.progress_updates || false}
                     onCheckedChange={(checked) =>
-                      setNotifications({...notifications, progressUpdates: checked})
+                      updatePreferences({ progress_updates: checked })
                     }
                   />
                 </div>
@@ -362,9 +347,9 @@ const Profile = () => {
                     </div>
                   </div>
                   <Switch
-                    checked={notifications.achievements}
+                    checked={preferences?.achievement_notifications || false}
                     onCheckedChange={(checked) =>
-                      setNotifications({...notifications, achievements: checked})
+                      updatePreferences({ achievement_notifications: checked })
                     }
                   />
                 </div>
@@ -402,21 +387,33 @@ const Profile = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {achievements.map((achievement, index) => {
-                    const Icon = achievement.icon;
-                    return (
-                      <div key={index} className="flex items-center gap-4 p-3 bg-muted/50 rounded-lg">
+                  {achievements && achievements.length > 0 ? (
+                    achievements.map((achievement) => (
+                      <div key={achievement.id} className="flex items-center gap-4 p-3 bg-muted/50 rounded-lg">
                         <div className="p-2 bg-primary/10 rounded-lg">
-                          <Icon size={20} className="text-primary" />
+                          <Trophy size={20} className="text-primary" />
                         </div>
                         <div className="flex-1">
                           <div className="font-medium">{achievement.title}</div>
-                          <div className="text-sm text-muted-foreground">{achievement.date}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {new Date(achievement.achieved_at).toLocaleDateString()}
+                          </div>
+                          {achievement.description && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {achievement.description}
+                            </div>
+                          )}
                         </div>
-                        <Badge variant="secondary">+10 XP</Badge>
+                        <Badge variant="secondary">+{achievement.points} XP</Badge>
                       </div>
-                    );
-                  })}
+                    ))
+                  ) : (
+                    <div className="text-center text-muted-foreground py-8">
+                      <Trophy size={48} className="mx-auto mb-4 opacity-50" />
+                      <p>No achievements yet!</p>
+                      <p className="text-sm">Complete workouts and reach your goals to earn achievements.</p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

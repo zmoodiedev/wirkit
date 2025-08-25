@@ -492,6 +492,45 @@ export type Database = {
         }
         Relationships: []
       }
+      user_preferences: {
+        Row: {
+          achievement_notifications: boolean | null
+          created_at: string
+          email_notifications: boolean | null
+          id: string
+          meal_reminders: boolean | null
+          progress_updates: boolean | null
+          push_notifications: boolean | null
+          updated_at: string
+          user_id: string
+          workout_reminders: boolean | null
+        }
+        Insert: {
+          achievement_notifications?: boolean | null
+          created_at?: string
+          email_notifications?: boolean | null
+          id?: string
+          meal_reminders?: boolean | null
+          progress_updates?: boolean | null
+          push_notifications?: boolean | null
+          updated_at?: string
+          user_id: string
+          workout_reminders?: boolean | null
+        }
+        Update: {
+          achievement_notifications?: boolean | null
+          created_at?: string
+          email_notifications?: boolean | null
+          id?: string
+          meal_reminders?: boolean | null
+          progress_updates?: boolean | null
+          push_notifications?: boolean | null
+          updated_at?: string
+          user_id?: string
+          workout_reminders?: boolean | null
+        }
+        Relationships: []
+      }
       workouts: {
         Row: {
           created_at: string
