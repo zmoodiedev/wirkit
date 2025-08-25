@@ -393,6 +393,23 @@ export const useWorkouts = () => {
     fetchTodayWorkout();
   }, []);
 
+  // Timer effect - runs when workout is active
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    
+    if (isWorkoutActive) {
+      interval = setInterval(() => {
+        setWorkoutTimer(prev => prev + 1);
+      }, 1000);
+    } else if (!isWorkoutActive && interval) {
+      clearInterval(interval);
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isWorkoutActive]);
+
   return {
     currentWorkout,
     isWorkoutActive,
