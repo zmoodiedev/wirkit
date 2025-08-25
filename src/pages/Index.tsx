@@ -65,7 +65,7 @@ const Index = () => {
             <h1 className="text-4xl lg:text-6xl font-bold leading-tight">
               Transform Your Fitness Journey with{' '}
               <span className="text-transparent bg-gradient-to-r from-white to-blue-200 bg-clip-text">
-                FitTracker
+                WirkIt
               </span>
             </h1>
             <p className="text-xl lg:text-2xl opacity-90 max-w-2xl mx-auto">
@@ -141,7 +141,7 @@ const Index = () => {
                 <h2 className="text-3xl lg:text-4xl font-bold mb-6">
                   Why Choose{' '}
                   <span className="bg-gradient-primary bg-clip-text text-transparent">
-                    FitTracker?
+                    WirkIt?
                   </span>
                 </h2>
                 <p className="text-lg text-muted-foreground">

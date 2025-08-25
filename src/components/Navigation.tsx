@@ -34,7 +34,7 @@ const Navigation = () => {
       <header className="lg:hidden bg-card border-b border-border sticky top-0 z-50">
         <div className="flex items-center justify-between p-4">
           <h1 className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-            FitTracker
+            WirkIt
           </h1>
           <button
             onClick={() => setIsOpen(!isOpen)}
@@ -77,7 +77,7 @@ const Navigation = () => {
         <div className="flex flex-col h-full">
           <div className="p-6 border-b border-border">
             <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              FitTracker
+              WirkIt
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
               Your fitness journey starts here

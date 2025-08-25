@@ -1,8 +1,8 @@
-# FitTracker - Mobile Fitness & Diet Tracking App
+# WirkIt - Mobile Fitness & Diet Tracking App
 
 ## 🏋️ Project Overview
 
-FitTracker is a comprehensive fitness and diet tracking application with AI-powered coaching capabilities. Built with React, TypeScript, and Tailwind CSS, it provides a modern, responsive experience for tracking workouts, nutrition, and progress.
+WirkIt is a comprehensive fitness and diet tracking application with AI-powered coaching capabilities. Built with React, TypeScript, and Tailwind CSS, it provides a modern, responsive experience for tracking workouts, nutrition, and progress.
 
 ## ✨ Features Implemented
 
@@ -60,7 +60,7 @@ npm install @capacitor/core @capacitor/cli @capacitor/ios @capacitor/android
 
 ### 2. Initialize Capacitor
 ```bash
-npx cap init FitTracker app.fittracker.mobile
+npx cap init WirkIt app.wirkit.mobile
 ```
 
 ### 3. Build and Add Platforms
