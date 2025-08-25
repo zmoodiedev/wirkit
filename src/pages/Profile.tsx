@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
 import Layout from '@/components/Layout';
+import GoalsSelector from '@/components/GoalsSelector';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
 import { useProfileStats } from '@/hooks/useProfileStats';
@@ -24,7 +25,9 @@ import {
   Save,
   Trophy,
   Calendar,
-  Activity
+  Activity,
+  Plus,
+  X
 } from 'lucide-react';
 
 const Profile = () => {
@@ -221,6 +224,25 @@ const Profile = () => {
                       disabled={!isEditing}
                     />
                   </div>
+                </div>
+
+                {/* Goals Section */}
+                <div className="mt-6">
+                  <Label className="text-base font-medium mb-4 block">Fitness Goals</Label>
+                  {!isEditing ? (
+                    <div className="flex flex-wrap gap-2">
+                      {formData.goals.map((goal) => (
+                        <Badge key={goal} variant="secondary">
+                          {goal}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <GoalsSelector
+                      selectedGoals={formData.goals}
+                      onGoalsChange={(goals) => setFormData({...formData, goals})}
+                    />
+                  )}
                 </div>
                 
                 {isEditing && (
