@@ -151,20 +151,11 @@ export const useFitnessData = () => {
         .single();
 
       if (!error && data) {
-        setFoodEntries(prev => [...prev, data as FoodEntry]);
+        const updatedEntries = [...foodEntries, data as FoodEntry];
+        setFoodEntries(updatedEntries);
         
-        // Update daily stats
-        const newCalories = (dailyStats?.calories_consumed || 0) + food.calories;
-        const newProtein = (dailyStats?.protein_consumed || 0) + food.protein;
-        const newCarbs = (dailyStats?.carbs_consumed || 0) + food.carbs;
-        const newFat = (dailyStats?.fat_consumed || 0) + food.fat;
-        
-        await updateDailyStats({
-          calories_consumed: newCalories,
-          protein_consumed: newProtein,
-          carbs_consumed: newCarbs,
-          fat_consumed: newFat
-        });
+        // Recalculate daily stats from all entries
+        await recalculateDailyStats(updatedEntries);
       }
     } catch (error) {
       console.error('Error adding food entry:', error);
@@ -180,9 +171,6 @@ export const useFitnessData = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const originalEntry = foodEntries.find(entry => entry.id === id);
-      if (!originalEntry) return;
-
       const { error } = await supabase
         .from('food_entries')
         .update(updates)
@@ -190,25 +178,13 @@ export const useFitnessData = () => {
         .eq('user_id', user.id);
 
       if (!error) {
-        setFoodEntries(prev => prev.map(entry => 
+        const updatedEntries = foodEntries.map(entry => 
           entry.id === id ? { ...entry, ...updates } : entry
-        ));
+        );
+        setFoodEntries(updatedEntries);
 
-        // Update daily stats if nutrition changed
-        if (updates.calories !== undefined || updates.protein !== undefined || 
-            updates.carbs !== undefined || updates.fat !== undefined) {
-          const caloriesDiff = (updates.calories || originalEntry.calories) - originalEntry.calories;
-          const proteinDiff = (updates.protein || originalEntry.protein) - originalEntry.protein;
-          const carbsDiff = (updates.carbs || originalEntry.carbs) - originalEntry.carbs;
-          const fatDiff = (updates.fat || originalEntry.fat) - originalEntry.fat;
-
-          await updateDailyStats({
-            calories_consumed: (dailyStats?.calories_consumed || 0) + caloriesDiff,
-            protein_consumed: (dailyStats?.protein_consumed || 0) + proteinDiff,
-            carbs_consumed: (dailyStats?.carbs_consumed || 0) + carbsDiff,
-            fat_consumed: (dailyStats?.fat_consumed || 0) + fatDiff
-          });
-        }
+        // Recalculate daily stats from all entries
+        await recalculateDailyStats(updatedEntries);
       }
     } catch (error) {
       console.error('Error editing food entry:', error);
@@ -220,9 +196,6 @@ export const useFitnessData = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const entryToDelete = foodEntries.find(entry => entry.id === id);
-      if (!entryToDelete) return;
-
       const { error } = await supabase
         .from('food_entries')
         .delete()
@@ -233,28 +206,32 @@ export const useFitnessData = () => {
         const updatedEntries = foodEntries.filter(entry => entry.id !== id);
         setFoodEntries(updatedEntries);
         
-        // Recalculate daily stats based on remaining entries
-        const newStats = updatedEntries.reduce((totals, entry) => ({
-          calories_consumed: totals.calories_consumed + entry.calories,
-          protein_consumed: totals.protein_consumed + entry.protein,
-          carbs_consumed: totals.carbs_consumed + entry.carbs,
-          fat_consumed: totals.fat_consumed + entry.fat
-        }), {
-          calories_consumed: 0,
-          protein_consumed: 0,
-          carbs_consumed: 0,
-          fat_consumed: 0
-        });
-
-        await updateDailyStats({
-          ...newStats,
-          water_intake: dailyStats?.water_intake || 0,
-          workout_minutes: dailyStats?.workout_minutes || 0
-        });
+        // Recalculate daily stats from remaining entries
+        await recalculateDailyStats(updatedEntries);
       }
     } catch (error) {
       console.error('Error deleting food entry:', error);
     }
+  };
+
+  const recalculateDailyStats = async (entries: FoodEntry[]) => {
+    const newStats = entries.reduce((totals, entry) => ({
+      calories_consumed: totals.calories_consumed + entry.calories,
+      protein_consumed: totals.protein_consumed + entry.protein,
+      carbs_consumed: totals.carbs_consumed + entry.carbs,
+      fat_consumed: totals.fat_consumed + entry.fat
+    }), {
+      calories_consumed: 0,
+      protein_consumed: 0,
+      carbs_consumed: 0,
+      fat_consumed: 0
+    });
+
+    await updateDailyStats({
+      ...newStats,
+      water_intake: dailyStats?.water_intake || 0,
+      workout_minutes: dailyStats?.workout_minutes || 0
+    });
   };
 
   const addCustomFood = async (food: Omit<CustomFood, 'id' | 'created_at'>) => {
