@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { useFitnessData, FoodEntry } from '@/hooks/useFitnessData';
 import { useToast } from '@/hooks/use-toast';
+import EditGoalsDialog from '@/components/EditGoalsDialog';
 
 
 // Common foods from food database
@@ -47,7 +48,7 @@ const Diet = () => {
   const [editingFood, setEditingFood] = useState<FoodEntry | null>(null);
   const [deletingFood, setDeletingFood] = useState<FoodEntry | null>(null);
   const [addingFood, setAddingFood] = useState(false);
-  const { userGoals, dailyStats, foodEntries, customFoods, loading, updateWaterIntake, deleteFoodEntry, addFoodEntry } = useFitnessData();
+  const { userGoals, dailyStats, foodEntries, customFoods, loading, updateWaterIntake, deleteFoodEntry, addFoodEntry, updateUserGoals } = useFitnessData();
   const { toast } = useToast();
 
   if (loading) {
@@ -160,10 +161,18 @@ const Diet = () => {
         {/* Daily Overview */}
         <Card className="bg-gradient-hero text-white border-0">
           <CardHeader>
-            <CardTitle className="text-2xl">Today's Nutrition</CardTitle>
-            <CardDescription className="text-white/80">
-              Track your daily intake and stay on target
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-2xl">Today's Nutrition</CardTitle>
+                <CardDescription className="text-white/80">
+                  Track your daily intake and stay on target
+                </CardDescription>
+              </div>
+              <EditGoalsDialog 
+                userGoals={userGoals} 
+                onUpdateGoals={updateUserGoals}
+              />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
