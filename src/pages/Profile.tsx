@@ -50,7 +50,7 @@ const Profile = () => {
   useEffect(() => {
     if (profile) {
       setFormData({
-        display_name: profile.display_name || user?.user_metadata?.display_name || user?.email?.split('@')[0] || '',
+        display_name: profile.display_name || '',
         age: profile.age?.toString() || '',
         height: profile.height || '',
         weight: profile.weight?.toString() || '',
