@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          achieved_at: string
+          achievement_type: string
+          created_at: string
+          description: string | null
+          id: string
+          points: number | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          achieved_at?: string
+          achievement_type: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          points?: number | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          achieved_at?: string
+          achievement_type?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          points?: number | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       custom_foods: {
         Row: {
           calories: number
@@ -89,6 +122,54 @@ export type Database = {
           user_id?: string
           water_intake?: number | null
           workout_minutes?: number | null
+        }
+        Relationships: []
+      }
+      exercise_records: {
+        Row: {
+          created_at: string
+          distance: number | null
+          duration: number | null
+          exercise_name: string
+          id: string
+          notes: string | null
+          record_date: string
+          record_type: string
+          reps: number | null
+          sets: number | null
+          updated_at: string
+          user_id: string
+          weight: number | null
+        }
+        Insert: {
+          created_at?: string
+          distance?: number | null
+          duration?: number | null
+          exercise_name: string
+          id?: string
+          notes?: string | null
+          record_date?: string
+          record_type: string
+          reps?: number | null
+          sets?: number | null
+          updated_at?: string
+          user_id: string
+          weight?: number | null
+        }
+        Update: {
+          created_at?: string
+          distance?: number | null
+          duration?: number | null
+          exercise_name?: string
+          id?: string
+          notes?: string | null
+          record_date?: string
+          record_type?: string
+          reps?: number | null
+          sets?: number | null
+          updated_at?: string
+          user_id?: string
+          weight?: number | null
         }
         Relationships: []
       }
@@ -288,6 +369,84 @@ export type Database = {
           updated_at?: string
           user_id?: string
           weight?: number | null
+        }
+        Relationships: []
+      }
+      progress_entries: {
+        Row: {
+          arm_measurement: number | null
+          body_fat_percentage: number | null
+          chest_measurement: number | null
+          created_at: string
+          date: string
+          id: string
+          notes: string | null
+          thigh_measurement: number | null
+          updated_at: string
+          user_id: string
+          waist_measurement: number | null
+          weight: number | null
+        }
+        Insert: {
+          arm_measurement?: number | null
+          body_fat_percentage?: number | null
+          chest_measurement?: number | null
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string | null
+          thigh_measurement?: number | null
+          updated_at?: string
+          user_id: string
+          waist_measurement?: number | null
+          weight?: number | null
+        }
+        Update: {
+          arm_measurement?: number | null
+          body_fat_percentage?: number | null
+          chest_measurement?: number | null
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string | null
+          thigh_measurement?: number | null
+          updated_at?: string
+          user_id?: string
+          waist_measurement?: number | null
+          weight?: number | null
+        }
+        Relationships: []
+      }
+      progress_photos: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          photo_type: string | null
+          photo_url: string
+          taken_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          photo_type?: string | null
+          photo_url: string
+          taken_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          photo_type?: string | null
+          photo_url?: string
+          taken_at?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
