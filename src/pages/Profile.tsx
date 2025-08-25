@@ -60,7 +60,7 @@ const Profile = () => {
     }
   }, [profile, user]);
 
-  const displayName = profile?.display_name || user?.user_metadata?.display_name;
+  const displayName = profile?.display_name || user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'User';
   const userEmail = user?.email || '';
   const displayGoals = profile?.goals || ['Lose Weight', 'Build Muscle', 'Improve Endurance'];
 
