@@ -5,6 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import Layout from '@/components/Layout';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import { 
   Send, 
   Mic, 
@@ -28,6 +31,8 @@ interface ChatMessage {
 }
 
 const Chat = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [message, setMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -37,19 +42,7 @@ const Chat = () => {
       id: '1',
       content: "Hi! I'm your AI fitness coach. I can help you log workouts, track meals, get exercise suggestions, and answer any fitness questions. What would you like to do today?",
       sender: 'ai',
-      timestamp: '10:30 AM'
-    },
-    {
-      id: '2',
-      content: "I just finished a 30-minute run and want to log it",
-      sender: 'user',
-      timestamp: '10:32 AM'
-    },
-    {
-      id: '3',
-      content: "Great job on your run! 🏃‍♂️ I've logged 30 minutes of running for you. Based on your pace and weight, you burned approximately 280 calories. How did you feel during the run?",
-      sender: 'ai',
-      timestamp: '10:32 AM'
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     },
   ]);
 
@@ -68,12 +61,13 @@ const Chat = () => {
     "Review progress"
   ];
 
-  const handleSend = () => {
-    if (!message.trim()) return;
+  const handleSend = async () => {
+    if (!message.trim() || !user) return;
 
+    const userMessage = message.trim();
     const newUserMessage: ChatMessage = {
       id: Date.now().toString(),
-      content: message,
+      content: userMessage,
       sender: 'user',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
@@ -82,36 +76,50 @@ const Chat = () => {
     setMessage('');
     setIsLoading(true);
 
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse: ChatMessage = {
+    try {
+      const { data, error } = await supabase.functions.invoke('fitness-coach', {
+        body: {
+          message: userMessage,
+          userId: user.id
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data && data.success) {
+        const aiResponse: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          content: data.response,
+          sender: 'ai',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        
+        setMessages(prev => [...prev, aiResponse]);
+      } else {
+        throw new Error(data?.error || 'Failed to get AI response');
+      }
+    } catch (error) {
+      console.error('Error getting AI response:', error);
+      toast({
+        title: "Error",
+        description: "Failed to get response from AI coach. Please try again.",
+        variant: "destructive",
+      });
+
+      // Add fallback message
+      const fallbackResponse: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        content: generateAIResponse(message),
+        content: "I'm sorry, I'm having trouble connecting right now. Please try again in a moment! 🤖",
         sender: 'ai',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       
-      setMessages(prev => [...prev, aiResponse]);
+      setMessages(prev => [...prev, fallbackResponse]);
+    } finally {
       setIsLoading(false);
-    }, 1500);
-  };
-
-  const generateAIResponse = (userMessage: string): string => {
-    const lowerMessage = userMessage.toLowerCase();
-    
-    if (lowerMessage.includes('workout') || lowerMessage.includes('exercise')) {
-      return "I'd be happy to help with your workout! Here are some exercises I recommend based on your goals: Push-ups (3 sets of 12), Squats (3 sets of 15), and Planks (3 sets of 30 seconds). Would you like me to create a full workout plan for you?";
     }
-    
-    if (lowerMessage.includes('meal') || lowerMessage.includes('food') || lowerMessage.includes('eat')) {
-      return "For a healthy meal, I suggest grilled chicken with quinoa and roasted vegetables. This gives you about 450 calories with 35g protein, 45g carbs, and 12g fat. Would you like me to log this meal for you or suggest other options?";
-    }
-    
-    if (lowerMessage.includes('progress') || lowerMessage.includes('stats')) {
-      return "Your progress is looking great! This week you've completed 4 out of 6 planned workouts and stayed within your calorie goals 5 out of 7 days. Your consistency is improving - keep it up! 💪";
-    }
-    
-    return "I understand you're asking about fitness and nutrition. Could you be more specific about what you'd like help with? I can assist with workout planning, meal logging, progress tracking, or answering any fitness questions you have!";
   };
 
   const toggleRecording = () => {
@@ -281,24 +289,6 @@ const Chat = () => {
               <p className="text-xs text-muted-foreground mt-2 text-center">
                 💡 Try voice input by clicking the microphone or type your questions
               </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* API Setup Notice */}
-        <Card className="shadow-card border-orange-200 bg-orange-50">
-          <CardContent className="p-4">
-            <div className="flex items-start gap-3">
-              <Lightbulb className="text-orange-500 flex-shrink-0 mt-1" size={20} />
-              <div>
-                <h4 className="font-medium text-orange-900 mb-1">OpenAI API Setup Required</h4>
-                <p className="text-sm text-orange-800 mb-2">
-                  To enable real ChatGPT integration, add your OpenAI API key to the environment variables.
-                </p>
-                <code className="text-xs bg-orange-100 px-2 py-1 rounded">
-                  VITE_OPENAI_API_KEY=your_api_key_here
-                </code>
-              </div>
             </div>
           </CardContent>
         </Card>
