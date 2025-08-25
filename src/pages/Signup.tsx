@@ -102,7 +102,7 @@ const Signup = () => {
       <Card className="w-full max-w-md shadow-elevated">
         <CardHeader className="text-center space-y-2">
           <CardTitle className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-            Join FitTracker
+            Join WirkIt
           </CardTitle>
           <CardDescription>
             Start your fitness journey today

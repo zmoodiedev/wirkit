@@ -234,7 +234,7 @@ const Index = () => {
         <div className="container mx-auto px-4 text-center">
           <div className="space-y-4">
             <h3 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              FitTracker
+              WirkIt
             </h3>
             <p className="text-muted-foreground">
               Your personal fitness companion with AI-powered insights
