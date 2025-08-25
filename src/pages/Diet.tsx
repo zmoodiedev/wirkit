@@ -6,9 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import Layout from '@/components/Layout';
 import AddFoodDialog from '@/components/AddFoodDialog';
 import FoodSearchDialog from '@/components/FoodSearchDialog';
+import EditFoodDialog from '@/components/EditFoodDialog';
 import { 
   Plus, 
   Search, 
@@ -21,12 +23,16 @@ import {
   Edit3,
   Trash2
 } from 'lucide-react';
-import { useFitnessData } from '@/hooks/useFitnessData';
+import { useFitnessData, FoodEntry } from '@/hooks/useFitnessData';
+import { useToast } from '@/hooks/use-toast';
 
 
 const Diet = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const { userGoals, dailyStats, foodEntries, loading, updateWaterIntake } = useFitnessData();
+  const [editingFood, setEditingFood] = useState<FoodEntry | null>(null);
+  const [deletingFood, setDeletingFood] = useState<FoodEntry | null>(null);
+  const { userGoals, dailyStats, foodEntries, loading, updateWaterIntake, deleteFoodEntry } = useFitnessData();
+  const { toast } = useToast();
 
   if (loading) {
     return (
@@ -49,6 +55,26 @@ const Diet = () => {
 
   const handleWaterUpdate = (newIntake: number) => {
     updateWaterIntake(newIntake);
+  };
+
+  const handleDeleteFood = async () => {
+    if (!deletingFood) return;
+    
+    try {
+      await deleteFoodEntry(deletingFood.id);
+      toast({
+        title: "Food deleted",
+        description: `${deletingFood.name} has been removed from your log`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete food entry",
+        variant: "destructive"
+      });
+    } finally {
+      setDeletingFood(null);
+    }
   };
 
   const mealSections = [
@@ -140,10 +166,18 @@ const Diet = () => {
                                   minute: '2-digit' 
                                 })}
                               </span>
-                              <Button size="sm" variant="ghost">
+                              <Button 
+                                size="sm" 
+                                variant="ghost"
+                                onClick={() => setEditingFood(entry)}
+                              >
                                 <Edit3 size={14} />
                               </Button>
-                              <Button size="sm" variant="ghost">
+                              <Button 
+                                size="sm" 
+                                variant="ghost"
+                                onClick={() => setDeletingFood(entry)}
+                              >
                                 <Trash2 size={14} />
                               </Button>
                             </div>
@@ -176,17 +210,18 @@ const Diet = () => {
                     }
                   />
                   <AddFoodDialog 
+                    customFoodOnly={true}
                     trigger={
                       <Button className="w-full">
                         <Plus size={16} className="mr-2" />
-                        Add Custom Food
+                        Create Custom Food
                       </Button>
                     }
                   />
                 </div>
                 
                 <div className="text-sm text-muted-foreground text-center">
-                  Choose from our food database or create custom entries with your own nutritional values
+                  Search our database or create custom foods that you can reuse in the future
                 </div>
               </CardContent>
             </Card>
@@ -251,6 +286,31 @@ const Diet = () => {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Edit Food Dialog */}
+        {editingFood && (
+          <EditFoodDialog
+            foodEntry={editingFood}
+            open={!!editingFood}
+            onOpenChange={(open) => !open && setEditingFood(null)}
+          />
+        )}
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={!!deletingFood} onOpenChange={(open) => !open && setDeletingFood(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Food Entry</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete "{deletingFood?.name}" from your food log? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteFood}>Delete</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </Layout>
   );

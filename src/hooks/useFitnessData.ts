@@ -31,10 +31,21 @@ export interface FoodEntry {
   logged_at: string;
 }
 
+export interface CustomFood {
+  id: string;
+  name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  created_at: string;
+}
+
 export const useFitnessData = () => {
   const [userGoals, setUserGoals] = useState<UserGoals | null>(null);
   const [dailyStats, setDailyStats] = useState<DailyStats | null>(null);
   const [foodEntries, setFoodEntries] = useState<FoodEntry[]>([]);
+  const [customFoods, setCustomFoods] = useState<CustomFood[]>([]);
   const [profile, setProfile] = useState<{ display_name: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -74,6 +85,13 @@ export const useFitnessData = () => {
         .eq('date', today)
         .order('logged_at', { ascending: true });
 
+      // Fetch user's custom foods
+      const { data: customFoodData } = await supabase
+        .from('custom_foods')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('name', { ascending: true });
+
       setProfile(profileData);
       setUserGoals(goalsData);
       setDailyStats(statsData || {
@@ -85,6 +103,7 @@ export const useFitnessData = () => {
         workout_minutes: 0
       });
       setFoodEntries((foodData || []) as FoodEntry[]);
+      setCustomFoods((customFoodData || []) as CustomFood[]);
     } catch (error) {
       console.error('Error fetching user data:', error);
     } finally {
@@ -156,6 +175,118 @@ export const useFitnessData = () => {
     await updateDailyStats({ water_intake: newWaterIntake });
   };
 
+  const editFoodEntry = async (id: string, updates: Partial<Omit<FoodEntry, 'id' | 'logged_at'>>) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const originalEntry = foodEntries.find(entry => entry.id === id);
+      if (!originalEntry) return;
+
+      const { error } = await supabase
+        .from('food_entries')
+        .update(updates)
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+      if (!error) {
+        setFoodEntries(prev => prev.map(entry => 
+          entry.id === id ? { ...entry, ...updates } : entry
+        ));
+
+        // Update daily stats if nutrition changed
+        if (updates.calories !== undefined || updates.protein !== undefined || 
+            updates.carbs !== undefined || updates.fat !== undefined) {
+          const caloriesDiff = (updates.calories || originalEntry.calories) - originalEntry.calories;
+          const proteinDiff = (updates.protein || originalEntry.protein) - originalEntry.protein;
+          const carbsDiff = (updates.carbs || originalEntry.carbs) - originalEntry.carbs;
+          const fatDiff = (updates.fat || originalEntry.fat) - originalEntry.fat;
+
+          await updateDailyStats({
+            calories_consumed: (dailyStats?.calories_consumed || 0) + caloriesDiff,
+            protein_consumed: (dailyStats?.protein_consumed || 0) + proteinDiff,
+            carbs_consumed: (dailyStats?.carbs_consumed || 0) + carbsDiff,
+            fat_consumed: (dailyStats?.fat_consumed || 0) + fatDiff
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error editing food entry:', error);
+    }
+  };
+
+  const deleteFoodEntry = async (id: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const entryToDelete = foodEntries.find(entry => entry.id === id);
+      if (!entryToDelete) return;
+
+      const { error } = await supabase
+        .from('food_entries')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+      if (!error) {
+        setFoodEntries(prev => prev.filter(entry => entry.id !== id));
+        
+        // Update daily stats
+        await updateDailyStats({
+          calories_consumed: (dailyStats?.calories_consumed || 0) - entryToDelete.calories,
+          protein_consumed: (dailyStats?.protein_consumed || 0) - entryToDelete.protein,
+          carbs_consumed: (dailyStats?.carbs_consumed || 0) - entryToDelete.carbs,
+          fat_consumed: (dailyStats?.fat_consumed || 0) - entryToDelete.fat
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting food entry:', error);
+    }
+  };
+
+  const addCustomFood = async (food: Omit<CustomFood, 'id' | 'created_at'>) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('custom_foods')
+        .insert({
+          user_id: user.id,
+          ...food
+        })
+        .select()
+        .single();
+
+      if (!error && data) {
+        setCustomFoods(prev => [...prev, data as CustomFood]);
+        return data as CustomFood;
+      }
+    } catch (error) {
+      console.error('Error adding custom food:', error);
+    }
+  };
+
+  const deleteCustomFood = async (id: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from('custom_foods')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+      if (!error) {
+        setCustomFoods(prev => prev.filter(food => food.id !== id));
+      }
+    } catch (error) {
+      console.error('Error deleting custom food:', error);
+    }
+  };
+
   useEffect(() => {
     fetchUserData();
   }, []);
@@ -164,9 +295,14 @@ export const useFitnessData = () => {
     userGoals,
     dailyStats,
     foodEntries,
+    customFoods,
     profile, 
     loading,
     addFoodEntry,
+    editFoodEntry,
+    deleteFoodEntry,
+    addCustomFood,
+    deleteCustomFood,
     updateWaterIntake,
     updateDailyStats,
     refetch: fetchUserData

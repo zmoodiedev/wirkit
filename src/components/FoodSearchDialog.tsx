@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Plus } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Search, Plus, Trash2 } from 'lucide-react';
 import { useFitnessData } from '@/hooks/useFitnessData';
 import { useToast } from '@/hooks/use-toast';
 
@@ -35,14 +36,23 @@ const FoodSearchDialog = ({ defaultMealType = 'breakfast', trigger }: FoodSearch
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { addFoodEntry } = useFitnessData();
+  const { addFoodEntry, customFoods, deleteCustomFood } = useFitnessData();
   const { toast } = useToast();
 
-  const filteredFoods = commonFoods.filter(food =>
+  const filteredCommonFoods = commonFoods.filter(food =>
     food.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleAddFood = async (food: FoodItem) => {
+  const filteredCustomFoods = customFoods.filter(food =>
+    food.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const allFilteredFoods = [
+    ...filteredCustomFoods.map(f => ({ ...f, isCustom: true })),
+    ...filteredCommonFoods.map(f => ({ ...f, isCustom: false, id: undefined }))
+  ];
+
+  const handleAddFood = async (food: FoodItem & { isCustom?: boolean; id?: string }) => {
     setLoading(true);
     
     try {
@@ -70,6 +80,22 @@ const FoodSearchDialog = ({ defaultMealType = 'breakfast', trigger }: FoodSearch
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteCustomFood = async (id: string, name: string) => {
+    try {
+      await deleteCustomFood(id);
+      toast({
+        title: "Custom food deleted",
+        description: `${name} has been removed from your foods`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete custom food",
+        variant: "destructive"
+      });
     }
   };
 
@@ -103,26 +129,41 @@ const FoodSearchDialog = ({ defaultMealType = 'breakfast', trigger }: FoodSearch
           </div>
           
           <div className="max-h-96 overflow-y-auto space-y-2">
-            {filteredFoods.length === 0 ? (
+            {allFilteredFoods.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">
                 {searchQuery ? 'No foods found matching your search' : 'Start typing to search for foods'}
               </div>
             ) : (
-              filteredFoods.map((food) => (
-                <div key={food.name} className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors">
-                  <div>
-                    <div className="font-medium">{food.name}</div>
+              allFilteredFoods.map((food, index) => (
+                <div key={`${food.isCustom ? 'custom' : 'common'}-${food.id || food.name}-${index}`} className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <div className="font-medium">{food.name}</div>
+                      {food.isCustom && <Badge variant="secondary" className="text-xs">Custom</Badge>}
+                    </div>
                     <div className="text-sm text-muted-foreground">
                       {food.calories} cal • P: {food.protein}g • C: {food.carbs}g • F: {food.fat}g
                     </div>
                   </div>
-                  <Button 
-                    size="sm" 
-                    onClick={() => handleAddFood(food)}
-                    disabled={loading}
-                  >
-                    <Plus size={14} />
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      size="sm" 
+                      onClick={() => handleAddFood(food)}
+                      disabled={loading}
+                    >
+                      <Plus size={14} />
+                    </Button>
+                    {food.isCustom && food.id && (
+                      <Button 
+                        size="sm" 
+                        variant="ghost"
+                        onClick={() => handleDeleteCustomFood(food.id!, food.name)}
+                        disabled={loading}
+                      >
+                        <Trash2 size={14} />
+                      </Button>
+                    )}
+                  </div>
                 </div>
               ))
             )}
