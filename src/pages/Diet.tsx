@@ -7,6 +7,8 @@ import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Layout from '@/components/Layout';
+import AddFoodDialog from '@/components/AddFoodDialog';
+import FoodSearchDialog from '@/components/FoodSearchDialog';
 import { 
   Plus, 
   Search, 
@@ -117,10 +119,7 @@ const Diet = () => {
                           <Badge variant="secondary">{mealCalories} cal</Badge>
                         )}
                       </div>
-                      <Button size="sm" variant="outline">
-                        <Plus size={14} className="mr-1" />
-                        Add
-                      </Button>
+                      <AddFoodDialog defaultMealType={section.id} />
                     </div>
                   </CardHeader>
                   {mealEntries.length > 0 && (
@@ -161,32 +160,33 @@ const Diet = () => {
           <TabsContent value="search" className="space-y-4">
             <Card className="shadow-card">
               <CardHeader>
-                <CardTitle>Search Foods</CardTitle>
+                <CardTitle>Add Foods</CardTitle>
                 <CardDescription>
-                  Find and add foods to your diary
+                  Find foods from our database or add custom entries
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="relative mb-4">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
-                  <Input
-                    placeholder="Search for foods..."
-                    className="pl-10"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FoodSearchDialog 
+                    trigger={
+                      <Button className="w-full" variant="outline">
+                        <Search size={16} className="mr-2" />
+                        Search Food Database
+                      </Button>
+                    }
+                  />
+                  <AddFoodDialog 
+                    trigger={
+                      <Button className="w-full">
+                        <Plus size={16} className="mr-2" />
+                        Add Custom Food
+                      </Button>
+                    }
                   />
                 </div>
                 
-                {/* Sample search results */}
-                <div className="space-y-2">
-                  {['Banana (1 medium)', 'Greek Yogurt (1 cup)', 'Almonds (1 oz)', 'Chicken Breast (100g)'].map((food) => (
-                    <div key={food} className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors cursor-pointer">
-                      <span>{food}</span>
-                      <Button size="sm">
-                        <Plus size={14} />
-                      </Button>
-                    </div>
-                  ))}
+                <div className="text-sm text-muted-foreground text-center">
+                  Choose from our food database or create custom entries with your own nutritional values
                 </div>
               </CardContent>
             </Card>
