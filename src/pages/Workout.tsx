@@ -16,6 +16,10 @@ import {
   TrendingUp
 } from 'lucide-react';
 import { useWorkouts } from '@/hooks/useWorkouts';
+import AddWorkoutDialog from '@/components/AddWorkoutDialog';
+import AddExerciseDialog from '@/components/AddExerciseDialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Trash2 } from 'lucide-react';
 
 
 const Workout = () => {
@@ -26,6 +30,10 @@ const Workout = () => {
     workoutTimer,
     loading,
     createSampleWorkout,
+    createWorkout,
+    deleteWorkout,
+    addExercise,
+    completeWorkout,
     toggleSet,
     updateSetWeight,
     getCompletedSets,
@@ -58,8 +66,9 @@ const Workout = () => {
                 Start your fitness journey by creating your first workout!
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <Button onClick={createSampleWorkout} className="bg-gradient-primary hover:shadow-glow transition-all">
+            <CardContent className="space-y-3">
+              <AddWorkoutDialog onAddWorkout={createWorkout} />
+              <Button onClick={createSampleWorkout} variant="outline" className="w-full">
                 <Plus size={16} className="mr-2" />
                 Create Sample Workout
               </Button>
@@ -78,27 +87,57 @@ const Workout = () => {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-            <CardTitle className="text-2xl">{currentWorkout.name}</CardTitle>
-            <CardDescription className="text-white/80">
-              {currentWorkout.description || 'Your workout for today'}
-            </CardDescription>
+                <CardTitle className="text-2xl">{currentWorkout.name}</CardTitle>
+                <CardDescription className="text-white/80">
+                  {currentWorkout.description || 'Your workout for today'}
+                </CardDescription>
               </div>
-              <Button
-                onClick={() => setIsWorkoutActive(!isWorkoutActive)}
-                className="bg-white/20 hover:bg-white/30 text-white border-white/30"
-              >
-                {isWorkoutActive ? (
-                  <>
-                    <Pause size={16} className="mr-2" />
-                    Pause
-                  </>
-                ) : (
-                  <>
-                    <Play size={16} className="mr-2" />
-                    Start
-                  </>
-                )}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={() => setIsWorkoutActive(!isWorkoutActive)}
+                  className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+                >
+                  {isWorkoutActive ? (
+                    <>
+                      <Pause size={16} className="mr-2" />
+                      Pause
+                    </>
+                  ) : (
+                    <>
+                      <Play size={16} className="mr-2" />
+                      Start
+                    </>
+                  )}
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+                    >
+                      <Trash2 size={16} />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Workout</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete this workout? This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => deleteWorkout(currentWorkout.id)}
+                        className="bg-destructive hover:bg-destructive/90"
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -201,10 +240,10 @@ const Workout = () => {
         </div>
 
         {/* Add Exercise Button */}
-        <Button className="w-full bg-gradient-primary hover:shadow-glow transition-all">
-          <Plus size={16} className="mr-2" />
-          Add Exercise
-        </Button>
+        <AddExerciseDialog 
+          workoutId={currentWorkout.id} 
+          onAddExercise={(exercise) => addExercise(currentWorkout.id, exercise)}
+        />
 
         {/* Complete Workout */}
         {getCompletedSets() === getTotalSets() && (
@@ -215,7 +254,10 @@ const Workout = () => {
               <p className="opacity-90 mb-4">
                 Great job! You've completed all sets. Time to rest and recover.
               </p>
-              <Button className="bg-white/20 hover:bg-white/30 text-white border-white/30">
+              <Button 
+                onClick={completeWorkout}
+                className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+              >
                 Save & Finish Workout
               </Button>
             </CardContent>

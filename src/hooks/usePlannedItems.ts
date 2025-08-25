@@ -139,11 +139,92 @@ export const usePlannedItems = () => {
     }
   };
 
-  const toggleComplete = (id: string) => {
-    const item = plannedItems.find(item => item.id === id);
-    if (item) {
-      updatePlannedItem(id, { completed: !item.completed });
+  const toggleComplete = async (id: string) => {
+    try {
+      const item = plannedItems.find(item => item.id === id);
+      if (!item) return;
+
+      const { error } = await supabase
+        .from('planned_items')
+        .update({ completed: !item.completed })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      // If completing a workout, create a workout entry
+      if (!item.completed && item.type === 'workout') {
+        await createWorkoutFromPlannedItem(item);
+      }
+      
+      // If completing a meal, create a food entry
+      if (!item.completed && item.type === 'meal') {
+        await createFoodEntryFromPlannedItem(item);
+      }
+
+      setPlannedItems(prev => 
+        prev.map(prevItem => 
+          prevItem.id === id ? { ...prevItem, completed: !prevItem.completed } : prevItem
+        )
+      );
+    } catch (error) {
+      console.error('Error toggling completion:', error);
+      toast.error('Failed to update item');
     }
+  };
+
+  const createWorkoutFromPlannedItem = async (item: PlannedItem) => {
+    try {
+      if (!user) return;
+
+      // Create a workout entry
+      await supabase
+        .from('workouts')
+        .insert({
+          user_id: user.id,
+          name: item.title,
+          description: `Completed from planner - ${item.difficulty || 'Standard'} difficulty`,
+          date: item.date,
+          duration_minutes: item.duration || 30,
+          is_completed: true
+        });
+
+      toast.success('Workout added to your workout history!');
+    } catch (error) {
+      console.error('Error creating workout from planned item:', error);
+    }
+  };
+
+  const createFoodEntryFromPlannedItem = async (item: PlannedItem) => {
+    try {
+      if (!user) return;
+
+      // Create a food entry
+      await supabase
+        .from('food_entries')
+        .insert({
+          user_id: user.id,
+          name: item.title,
+          calories: item.calories || 300,
+          protein: Math.round((item.calories || 300) * 0.15 / 4), // Estimate protein
+          carbs: Math.round((item.calories || 300) * 0.45 / 4), // Estimate carbs
+          fat: Math.round((item.calories || 300) * 0.4 / 9), // Estimate fat
+          meal_type: getMealTypeFromTime(item.time),
+          date: item.date,
+          logged_at: new Date().toISOString()
+        });
+
+      toast.success('Meal added to your diet log!');
+    } catch (error) {
+      console.error('Error creating food entry from planned item:', error);
+    }
+  };
+
+  const getMealTypeFromTime = (time: string): string => {
+    const hour = parseInt(time.split(':')[0]);
+    if (hour < 10) return 'breakfast';
+    if (hour < 14) return 'lunch';
+    if (hour < 18) return 'snack';
+    return 'dinner';
   };
 
   useEffect(() => {

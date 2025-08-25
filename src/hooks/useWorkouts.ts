@@ -32,6 +32,7 @@ export const useWorkouts = () => {
   const [isWorkoutActive, setIsWorkoutActive] = useState(false);
   const [workoutTimer, setWorkoutTimer] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [allWorkouts, setAllWorkouts] = useState<Workout[]>([]);
 
   const fetchTodayWorkout = async () => {
     try {
@@ -268,6 +269,126 @@ export const useWorkouts = () => {
     return currentWorkout.exercises.reduce((total, exercise) => total + exercise.sets.length, 0);
   };
 
+  const createWorkout = async (workout: { name: string; description: string; date?: string }) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const workoutDate = workout.date || new Date().toISOString().split('T')[0];
+
+      const { data: newWorkout, error } = await supabase
+        .from('workouts')
+        .insert({
+          user_id: user.id,
+          name: workout.name,
+          description: workout.description,
+          date: workoutDate
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // If it's today's workout, set as current
+      const today = new Date().toISOString().split('T')[0];
+      if (workoutDate === today) {
+        await fetchTodayWorkout();
+      }
+      
+      return newWorkout;
+    } catch (error) {
+      console.error('Error creating workout:', error);
+      throw error;
+    }
+  };
+
+  const deleteWorkout = async (workoutId: string) => {
+    try {
+      const { error } = await supabase
+        .from('workouts')
+        .delete()
+        .eq('id', workoutId);
+
+      if (error) throw error;
+
+      // If it was the current workout, clear it
+      if (currentWorkout?.id === workoutId) {
+        setCurrentWorkout(null);
+      }
+    } catch (error) {
+      console.error('Error deleting workout:', error);
+      throw error;
+    }
+  };
+
+  const addExercise = async (workoutId: string, exercise: { 
+    name: string; 
+    category: string; 
+    rest_time: number;
+    sets: { reps: number; weight?: number }[];
+  }) => {
+    try {
+      // Create the exercise
+      const { data: newExercise, error: exerciseError } = await supabase
+        .from('exercises')
+        .insert({
+          workout_id: workoutId,
+          name: exercise.name,
+          category: exercise.category,
+          rest_time: exercise.rest_time
+        })
+        .select()
+        .single();
+
+      if (exerciseError || !newExercise) throw exerciseError;
+
+      // Create the sets
+      const setsToInsert = exercise.sets.map((set, index) => ({
+        exercise_id: newExercise.id,
+        reps: set.reps,
+        weight: set.weight,
+        set_order: index + 1,
+        is_completed: false
+      }));
+
+      const { error: setsError } = await supabase
+        .from('exercise_sets')
+        .insert(setsToInsert);
+
+      if (setsError) throw setsError;
+
+      // Refresh current workout if this exercise was added to it
+      if (currentWorkout?.id === workoutId) {
+        await fetchTodayWorkout();
+      }
+    } catch (error) {
+      console.error('Error adding exercise:', error);
+      throw error;
+    }
+  };
+
+  const completeWorkout = async () => {
+    if (!currentWorkout) return;
+
+    try {
+      const { error } = await supabase
+        .from('workouts')
+        .update({ 
+          is_completed: true,
+          duration_minutes: Math.floor(workoutTimer / 60)
+        })
+        .eq('id', currentWorkout.id);
+
+      if (error) throw error;
+
+      setCurrentWorkout(prev => prev ? { ...prev, is_completed: true } : null);
+      setIsWorkoutActive(false);
+    } catch (error) {
+      console.error('Error completing workout:', error);
+      throw error;
+    }
+  };
+
   useEffect(() => {
     fetchTodayWorkout();
   }, []);
@@ -279,7 +400,12 @@ export const useWorkouts = () => {
     workoutTimer,
     setWorkoutTimer,
     loading,
+    allWorkouts,
     createSampleWorkout,
+    createWorkout,
+    deleteWorkout,
+    addExercise,
+    completeWorkout,
     toggleSet,
     updateSetWeight,
     getCompletedSets,
