@@ -38,7 +38,7 @@ const Dashboard = () => {
     );
   }
 
-  const displayName = profile?.display_name || "User";
+  const displayName = profile?.display_name || "";
 
   return (
     <Layout>
@@ -46,7 +46,7 @@ const Dashboard = () => {
         {/* Welcome Section */}
         <div className="bg-gradient-hero rounded-2xl p-6 text-white">
           <h1 className="text-2xl lg:text-3xl font-bold mb-2">
-            Welcome back, {displayName}! 💪
+            Welcome back, {displayName} 💪
           </h1>
           <p className="opacity-90">
             {dailyStats?.calories_consumed ? 
