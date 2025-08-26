@@ -119,9 +119,28 @@ export const useFitnessData = () => {
       setFoodEntries((foodData || []) as FoodEntry[]);
       setCustomFoods((customFoodData || []) as CustomFood[]);
       
-      // Calculate daily stats from today's food entries only
+      // Calculate daily stats from today's food entries only, but preserve water intake and workout minutes from database
       if (todaysFoodEntries.length > 0) {
-        recalculateDailyStats(todaysFoodEntries as FoodEntry[]);
+        const foodStats = todaysFoodEntries.reduce((totals, entry) => ({
+          calories_consumed: totals.calories_consumed + entry.calories,
+          protein_consumed: totals.protein_consumed + entry.protein,
+          carbs_consumed: totals.carbs_consumed + entry.carbs,
+          fat_consumed: totals.fat_consumed + entry.fat
+        }), {
+          calories_consumed: 0,
+          protein_consumed: 0,
+          carbs_consumed: 0,
+          fat_consumed: 0
+        });
+
+        // Merge with existing stats to preserve water intake and workout minutes
+        const mergedStats = {
+          ...foodStats,
+          water_intake: statsData?.water_intake || 0,
+          workout_minutes: statsData?.workout_minutes || 0
+        };
+        
+        setDailyStats(mergedStats);
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
