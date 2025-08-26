@@ -29,10 +29,7 @@ serve(async (req) => {
       throw new Error('User ID is required');
     }
 
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openAIApiKey) {
-      throw new Error('OpenAI API key not configured');
-    }
+    // No API key needed for local processing
 
     // Get user's fitness context
     const userContext = await getUserFitnessContext(userId);
@@ -47,61 +44,8 @@ serve(async (req) => {
       logConfirmation = `\n\n✅ I've created/logged the following for you:\n${loggedItems.join('\n')}`;
     }
 
-    const systemPrompt = `You are an expert AI fitness coach and nutritionist. Your role is to provide personalized, science-based fitness and nutrition guidance.
-
-USER CONTEXT:
-${userContext}
-
-SPECIAL ABILITIES:
-- When users ask you to create workouts, you can generate structured workout plans with specific exercises and sets
-- When users mention meals or food they've eaten, acknowledge that you've logged it
-- When users mention workouts or exercises they've done, acknowledge that you've logged it  
-- When users mention planning activities, acknowledge that you've added it to their planner
-- You can automatically log meals, workouts, and planner items based on user descriptions
-- You can create complete workout routines including exercises, sets, reps, and rest times
-
-INSTRUCTIONS:
-- Be encouraging, motivating, and supportive
-- Provide specific, actionable advice
-- Use emojis appropriately to make responses engaging
-- Keep responses concise but informative (2-3 paragraphs max)
-- Always consider the user's current fitness level and goals
-- When you log items, confirm what was logged and provide helpful context
-- Provide specific numbers for exercises (sets, reps, duration)
-- For meal suggestions, include approximate calories and macros
-- Be knowledgeable about exercise form, injury prevention, and progressive overload
-- If the user asks about something unrelated to fitness/health, politely redirect back to fitness topics
-
-RESPONSE STYLE:
-- Start with encouraging words
-- Provide the main advice or information
-- If you logged something, mention it positively
-- End with a question or call to action to keep the conversation going`;
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-5-2025-08-07',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: message + (logConfirmation ? `\n\nNOTE: You have automatically logged items for the user. Acknowledge this in your response.${logConfirmation}` : '') }
-        ],
-        max_completion_tokens: 500,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('OpenAI API error:', errorData);
-      throw new Error(`OpenAI API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const aiResponse = data.choices[0].message.content;
+    // Generate fitness coach response locally
+    const aiResponse = generateFitnessResponse(message, userContext, logConfirmation);
 
     console.log('AI response generated successfully');
 
@@ -124,6 +68,68 @@ RESPONSE STYLE:
     });
   }
 });
+
+// Simple fitness coach response generator
+function generateFitnessResponse(message: string, userContext: any, logConfirmation: string): string {
+  const lowerMessage = message.toLowerCase();
+  
+  // Acknowledge any logged items
+  let response = '';
+  if (logConfirmation) {
+    response += logConfirmation + '\n\n';
+  }
+  
+  // Generate contextual responses based on message content
+  if (lowerMessage.includes('workout') || lowerMessage.includes('exercise') || lowerMessage.includes('cardio') || lowerMessage.includes('strength')) {
+    const workoutResponses = [
+      "Great job staying active! 💪 Consistency is key to reaching your fitness goals.",
+      "Excellent work! 🔥 Remember to stay hydrated and listen to your body.",
+      "Nice workout! ⭐ Recovery is just as important as the exercise itself.",
+      "Way to go! 🚀 Every workout brings you closer to your fitness goals.",
+      "Fantastic effort! 💯 Consider varying your routine to keep things interesting."
+    ];
+    response += workoutResponses[Math.floor(Math.random() * workoutResponses.length)];
+    
+    if (lowerMessage.includes('create') || lowerMessage.includes('make') || lowerMessage.includes('build')) {
+      response += "\n\nWhat's your goal for this workout? Are you focusing on strength, cardio, or specific muscle groups?";
+    } else {
+      response += "\n\nHow are you feeling after that workout? Ready for your next session?";
+    }
+  } else if (lowerMessage.includes('food') || lowerMessage.includes('meal') || lowerMessage.includes('ate') || lowerMessage.includes('calories')) {
+    const nutritionResponses = [
+      "Good job tracking your nutrition! 🥗 Balance is key to a healthy diet.",
+      "Excellent! 👏 Remember to include plenty of vegetables and lean proteins.",
+      "Great work logging your food! 📊 Staying mindful of what you eat helps reach your goals.",
+      "Nice! 💧 Don't forget to drink plenty of water throughout the day.",
+      "Well done! ⚖️ Consider the quality of calories, not just the quantity."
+    ];
+    response += nutritionResponses[Math.floor(Math.random() * nutritionResponses.length)];
+    response += "\n\nWhat's your next meal going to be? Planning ahead makes healthy choices easier!";
+  } else if (lowerMessage.includes('goal') || lowerMessage.includes('plan')) {
+    response += "Setting clear goals is the first step to success! 🎯 Remember to make them specific, measurable, and achievable. I'm here to help you stay on track!\n\nWhat's your main fitness goal right now?";
+  } else if (lowerMessage.includes('tired') || lowerMessage.includes('sore')) {
+    response += "Rest and recovery are crucial parts of your fitness journey! 😴 Make sure you're getting enough sleep and consider gentle stretching or a rest day if needed.\n\nHow has your sleep been lately?";
+  } else if (lowerMessage.includes('motivation') || lowerMessage.includes('help')) {
+    response += "You've got this! 💪 Every small step counts toward your bigger goals. Focus on progress, not perfection, and celebrate your wins along the way!\n\nWhat's one thing you're proud of this week?";
+  } else {
+    // General encouraging responses
+    const generalResponses = [
+      "I'm here to help with your fitness journey! 🌟 Feel free to log workouts, meals, or ask any fitness-related questions.",
+      "Great to hear from you! 😊 Remember, consistency beats perfection every time.",
+      "Keep up the great work! 📈 Small daily actions lead to big results over time.",
+      "You're doing awesome! 👍 What can I help you with today?",
+      "Every day is a new opportunity to work toward your goals! 🌅 How can I support you today?"
+    ];
+    response += generalResponses[Math.floor(Math.random() * generalResponses.length)];
+  }
+  
+  // Add personalized context if available
+  if (userContext?.profile?.display_name) {
+    response = response.replace(/You're|You've/g, `${userContext.profile.display_name}, you're`);
+  }
+  
+  return response;
+}
 
 async function processUserRequest(message: string, userId: string): Promise<string[]> {
   const loggedItems: string[] = [];
