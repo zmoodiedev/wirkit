@@ -180,14 +180,35 @@ async function processUserRequest(message: string, userId: string): Promise<stri
     }
 
     // Detect planner item (only if not workout or meal related)
-    if (detectPlannerRequest(lowerMessage) && !isWorkoutRelated(lowerMessage) && !isMealRelated(lowerMessage)) {
+    const isPlannerRequest = detectPlannerRequest(lowerMessage);
+    console.log('Planner request detected:', isPlannerRequest);
+    
+    if (isPlannerRequest && !isWorkoutRelated(lowerMessage) && !isMealRelated(lowerMessage)) {
+      console.log('Processing planner request...');
       const plannerData = await extractPlannerData(message);
+      console.log('Extracted planner data:', JSON.stringify(plannerData, null, 2));
+      
       if (plannerData) {
         const result = await logPlannerItem(plannerData, userId);
+        console.log('Planner item creation result:', result);
+        
         if (result) {
           loggedItems.push(`📅 Planned: ${plannerData.title} for ${plannerData.date}`);
         }
       }
+    }
+
+    // Also automatically create planner items for workout and meal requests
+    if (isWorkoutCreation) {
+      console.log('Auto-creating planner item for workout...');
+      const workoutPlannerData = {
+        title: 'Workout Session',
+        type: 'workout',
+        date: new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0],
+        time: '18:00', // Default 6 PM
+        duration: 60
+      };
+      await logPlannerItem(workoutPlannerData, userId);
     }
 
   } catch (error) {
@@ -209,17 +230,38 @@ function detectWorkoutLogging(message: string): boolean {
 function detectMealLogging(message: string): boolean {
   const mealKeywords = [
     'ate', 'had', 'consumed', 'drank', 'finished eating', 'just ate',
-    'breakfast', 'lunch', 'dinner', 'snack', 'meal'
+    'breakfast', 'lunch', 'dinner', 'snack', 'meal',
+    'just had', 'eating', 'food', 'cooked', 'made',
+    'ordered', 'grabbed', 'picked up', 'bought food',
+    'chicken', 'beef', 'fish', 'salmon', 'turkey', 'pork',
+    'rice', 'pasta', 'bread', 'salad', 'vegetables', 'fruits',
+    'eggs', 'oatmeal', 'yogurt', 'smoothie', 'sandwich',
+    'pizza', 'burger', 'tacos', 'soup', 'steak', 'apple',
+    'banana', 'protein shake', 'coffee', 'calories'
   ];
-  return mealKeywords.some(keyword => message.includes(keyword));
+  console.log('Checking message for meal logging keywords:', message);
+  
+  const found = mealKeywords.some(keyword => message.includes(keyword));
+  console.log('Meal logging keyword found:', found);
+  
+  return found;
 }
 
 function detectPlannerRequest(message: string): boolean {
   const plannerKeywords = [
     'plan', 'schedule', 'tomorrow', 'next week', 'later', 'planning to',
-    'want to', 'going to', 'will do', 'remind me'
+    'want to', 'going to', 'will do', 'remind me', 'set reminder',
+    'book', 'appointment', 'meeting', 'calendar', 'agenda',
+    'plan to eat', 'plan to workout', 'schedule workout', 'schedule meal',
+    'tomorrow I will', 'next I will', 'planning on', 'intend to',
+    'set up', 'arrange', 'organize', 'pencil in'
   ];
-  return plannerKeywords.some(keyword => message.includes(keyword));
+  console.log('Checking message for planner keywords:', message);
+  
+  const found = plannerKeywords.some(keyword => message.includes(keyword));
+  console.log('Planner keyword found:', found);
+  
+  return found;
 }
 
 function detectWorkoutCreation(message: string): boolean {
@@ -355,6 +397,7 @@ async function extractMealData(message: string) {
 
 async function extractPlannerData(message: string) {
   const lowerMessage = message.toLowerCase();
+  console.log('Extracting planner data from:', message);
   
   // Determine date
   let targetDate = new Date();
@@ -362,16 +405,26 @@ async function extractPlannerData(message: string) {
     targetDate.setDate(targetDate.getDate() + 1);
   } else if (lowerMessage.includes('next week')) {
     targetDate.setDate(targetDate.getDate() + 7);
+  } else if (lowerMessage.includes('monday')) {
+    // Find next Monday
+    const daysUntilMonday = (1 + 7 - targetDate.getDay()) % 7;
+    targetDate.setDate(targetDate.getDate() + (daysUntilMonday === 0 ? 7 : daysUntilMonday));
   }
+  // Add more day detection as needed
 
-  // Determine type and title
+  // Determine type and title with better detection
   let type = 'other';
   let title = 'Planned activity';
   
-  if (lowerMessage.includes('workout') || lowerMessage.includes('exercise') || lowerMessage.includes('gym')) {
+  if (lowerMessage.includes('workout') || lowerMessage.includes('exercise') || lowerMessage.includes('gym') || 
+      lowerMessage.includes('train') || lowerMessage.includes('lift') || lowerMessage.includes('run') ||
+      lowerMessage.includes('cardio') || lowerMessage.includes('push') || lowerMessage.includes('pull') ||
+      lowerMessage.includes('leg')) {
     type = 'workout';
     title = 'Planned workout session';
-  } else if (lowerMessage.includes('meal') || lowerMessage.includes('eat') || lowerMessage.includes('cook')) {
+  } else if (lowerMessage.includes('meal') || lowerMessage.includes('eat') || lowerMessage.includes('cook') ||
+             lowerMessage.includes('breakfast') || lowerMessage.includes('lunch') || lowerMessage.includes('dinner') ||
+             lowerMessage.includes('food') || lowerMessage.includes('restaurant')) {
     type = 'meal';
     title = 'Planned meal';
   }
