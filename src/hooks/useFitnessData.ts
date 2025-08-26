@@ -235,7 +235,10 @@ export const useFitnessData = () => {
   };
 
   const recalculateDailyStats = async (entries: FoodEntry[]) => {
-    const newStats = entries.reduce((totals, entry) => ({
+    const today = new Date().toISOString().split('T')[0];
+    const todaysEntries = entries.filter(entry => entry.date === today);
+    
+    const newStats = todaysEntries.reduce((totals, entry) => ({
       calories_consumed: totals.calories_consumed + entry.calories,
       protein_consumed: totals.protein_consumed + entry.protein,
       carbs_consumed: totals.carbs_consumed + entry.carbs,
@@ -247,11 +250,17 @@ export const useFitnessData = () => {
       fat_consumed: 0
     });
 
-    await updateDailyStats({
+    const updatedStats = {
       ...newStats,
       water_intake: dailyStats?.water_intake || 0,
       workout_minutes: dailyStats?.workout_minutes || 0
-    });
+    };
+
+    // Update local state immediately for instant UI updates
+    setDailyStats(updatedStats);
+
+    // Update database in background
+    await updateDailyStats(updatedStats);
   };
 
   const addCustomFood = async (food: Omit<CustomFood, 'id' | 'created_at'>) => {
