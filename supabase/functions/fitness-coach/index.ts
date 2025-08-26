@@ -226,9 +226,20 @@ function detectWorkoutCreation(message: string): boolean {
   const creationKeywords = [
     'create workout', 'make workout', 'build workout', 'design workout',
     'workout plan', 'workout routine', 'training program', 'exercise routine',
-    'generate workout', 'build me a workout', 'create a workout'
+    'generate workout', 'build me a workout', 'create a workout',
+    'create a', 'make a', 'generate a', 'build a', 'design a',
+    'need a workout', 'want a workout', 'give me a workout',
+    'push workout', 'pull workout', 'leg workout', 'chest workout',
+    'back workout', 'arm workout', 'shoulder workout', 'full body workout',
+    'cardio workout', 'strength workout', 'hiit workout'
   ];
-  return creationKeywords.some(keyword => message.includes(keyword));
+  console.log('Checking message for workout creation keywords:', message);
+  console.log('Keywords to check:', creationKeywords);
+  
+  const found = creationKeywords.some(keyword => message.includes(keyword));
+  console.log('Workout creation keyword found:', found);
+  
+  return found;
 }
 
 function isWorkoutRelated(message: string): boolean {
