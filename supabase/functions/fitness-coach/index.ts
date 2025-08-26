@@ -185,15 +185,23 @@ async function processUserRequest(message: string, userId: string): Promise<stri
     
     if (isPlannerRequest && !isWorkoutRelated(lowerMessage) && !isMealRelated(lowerMessage)) {
       console.log('Processing planner request...');
-      const plannerData = await extractPlannerData(message);
-      console.log('Extracted planner data:', JSON.stringify(plannerData, null, 2));
+      const plannerDataArray = await extractPlannerData(message);
+      console.log('Extracted planner data:', JSON.stringify(plannerDataArray, null, 2));
       
-      if (plannerData) {
-        const result = await logPlannerItem(plannerData, userId);
-        console.log('Planner item creation result:', result);
+      if (plannerDataArray && plannerDataArray.length > 0) {
+        let successCount = 0;
+        for (const plannerData of plannerDataArray) {
+          const result = await logPlannerItem(plannerData, userId);
+          if (result) successCount++;
+        }
+        console.log(`Planner items creation result: ${successCount}/${plannerDataArray.length} created`);
         
-        if (result) {
-          loggedItems.push(`📅 Planned: ${plannerData.title} for ${plannerData.date}`);
+        if (successCount > 0) {
+          if (plannerDataArray.length === 1) {
+            loggedItems.push(`📅 Planned: ${plannerDataArray[0].title} for ${plannerDataArray[0].date}`);
+          } else {
+            loggedItems.push(`📅 Planned: ${successCount} ${plannerDataArray[0].title.toLowerCase()} sessions`);
+          }
         }
       }
     }
@@ -456,18 +464,37 @@ async function extractPlannerData(message: string) {
   const lowerMessage = message.toLowerCase();
   console.log('Extracting planner data from:', message);
   
-  // Determine date
-  let targetDate = new Date();
-  if (lowerMessage.includes('tomorrow')) {
-    targetDate.setDate(targetDate.getDate() + 1);
-  } else if (lowerMessage.includes('next week')) {
-    targetDate.setDate(targetDate.getDate() + 7);
-  } else if (lowerMessage.includes('monday')) {
-    // Find next Monday
-    const daysUntilMonday = (1 + 7 - targetDate.getDay()) % 7;
-    targetDate.setDate(targetDate.getDate() + (daysUntilMonday === 0 ? 7 : daysUntilMonday));
+  // Determine if this is a recurring request
+  const isRecurring = lowerMessage.includes('every') || lowerMessage.includes('all');
+  console.log('Is recurring request:', isRecurring);
+  
+  let targetDates: Date[] = [];
+  
+  if (isRecurring) {
+    // Handle recurring requests like "every Tuesday in September"
+    const dayOfWeek = extractDayOfWeek(lowerMessage);
+    const month = extractMonth(lowerMessage);
+    const year = extractYear(lowerMessage) || new Date().getFullYear();
+    
+    console.log('Recurring schedule - Day:', dayOfWeek, 'Month:', month, 'Year:', year);
+    
+    if (dayOfWeek !== null && month !== null) {
+      targetDates = getAllDatesForDayInMonth(dayOfWeek, month, year);
+      console.log('Generated target dates:', targetDates.map(d => d.toISOString().split('T')[0]));
+    }
+  } else {
+    // Handle single date requests
+    let targetDate = new Date();
+    if (lowerMessage.includes('tomorrow')) {
+      targetDate.setDate(targetDate.getDate() + 1);
+    } else if (lowerMessage.includes('next week')) {
+      targetDate.setDate(targetDate.getDate() + 7);
+    } else if (lowerMessage.includes('monday')) {
+      const daysUntilMonday = (1 + 7 - targetDate.getDay()) % 7;
+      targetDate.setDate(targetDate.getDate() + (daysUntilMonday === 0 ? 7 : daysUntilMonday));
+    }
+    targetDates = [targetDate];
   }
-  // Add more day detection as needed
 
   // Determine type and title with better detection
   let type = 'other';
@@ -486,9 +513,9 @@ async function extractPlannerData(message: string) {
     title = 'Planned meal';
   }
 
-  // Extract time (default to 9 AM)
+  // Extract time (default to 6 PM for workouts, 12 PM for meals)
   const timeMatch = message.match(/(\d{1,2}):?(\d{2})?\s*(am|pm)/i);
-  let time = '09:00';
+  let time = type === 'workout' ? '18:00' : '12:00';
   
   if (timeMatch) {
     let hour = parseInt(timeMatch[1]);
@@ -501,13 +528,69 @@ async function extractPlannerData(message: string) {
     time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
   }
 
-  return {
+  // Return multiple planner items for recurring events
+  return targetDates.map(date => ({
     title: title,
     type: type,
-    date: new Date(targetDate.getTime() - (targetDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0],
+    date: new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().split('T')[0],
     time: time,
     duration: 60 // default 1 hour
+  }));
+}
+
+// Helper functions for recurring date parsing
+function extractDayOfWeek(message: string): number | null {
+  const days = {
+    'sunday': 0, 'monday': 1, 'tuesday': 2, 'wednesday': 3,
+    'thursday': 4, 'friday': 5, 'saturday': 6
   };
+  
+  for (const [day, num] of Object.entries(days)) {
+    if (message.includes(day)) return num;
+  }
+  return null;
+}
+
+function extractMonth(message: string): number | null {
+  const months = {
+    'january': 0, 'february': 1, 'march': 2, 'april': 3, 'may': 4, 'june': 5,
+    'july': 6, 'august': 7, 'september': 8, 'october': 9, 'november': 10, 'december': 11
+  };
+  
+  for (const [month, num] of Object.entries(months)) {
+    if (message.includes(month)) return num;
+  }
+  return null;
+}
+
+function extractYear(message: string): number | null {
+  const yearMatch = message.match(/\b(20\d{2})\b/);
+  if (yearMatch) return parseInt(yearMatch[1]);
+  
+  if (message.includes('this year')) return new Date().getFullYear();
+  if (message.includes('next year')) return new Date().getFullYear() + 1;
+  
+  return null;
+}
+
+function getAllDatesForDayInMonth(dayOfWeek: number, month: number, year: number): Date[] {
+  const dates: Date[] = [];
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  
+  // Find first occurrence of the day in the month
+  let current = new Date(firstDay);
+  while (current.getDay() !== dayOfWeek) {
+    current.setDate(current.getDate() + 1);
+  }
+  
+  // Add all occurrences of that day in the month
+  while (current <= lastDay) {
+    dates.push(new Date(current));
+    current.setDate(current.getDate() + 7);
+  }
+  
+  return dates;
 }
 
 async function logWorkout(workoutData: any, userId: string): Promise<boolean> {
