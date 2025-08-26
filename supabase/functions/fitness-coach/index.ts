@@ -243,14 +243,26 @@ function detectWorkoutLogging(message: string): boolean {
 function detectMealLogging(message: string): boolean {
   const lowerMessage = message.toLowerCase();
   
-  // More specific meal logging patterns to avoid false positives
+  // Exclude questions about calorie intake/tracking
+  const questionPatterns = [
+    /\b(how many|what|check|show|tell me)\b.*\b(calories|intake)\b/,
+    /\b(calories|intake)\b.*\b(today|consumed|eaten|had)\b.*\?/,
+    /\?\s*$/ // ends with question mark
+  ];
+  
+  // If it's a question about calories/intake, don't log it as a meal
+  if (questionPatterns.some(pattern => pattern.test(lowerMessage))) {
+    console.log('Detected as calorie question, not meal logging');
+    return false;
+  }
+  
+  // More specific meal logging patterns - only past tense actions
   const mealPatterns = [
-    /\b(ate|had|consumed|drank|finished eating|just ate)\b/,
-    /\b(breakfast|lunch|dinner|snack|meal)\b/,
-    /\b(just had|eating|cooked|made|ordered|grabbed)\b.*\b(food|meal|breakfast|lunch|dinner)\b/,
+    /\b(ate|had|finished eating|just ate|just had)\b\s+\w+/,
+    /\bi\s+(ate|had|consumed|drank|cooked|made|ordered|grabbed|bought)\b/,
+    /\b(eating|cooked|made|ordered|grabbed)\b.*\b(for\s+)?(breakfast|lunch|dinner)\b/,
     /\b(bought|picked up)\b.*\bfood\b/,
-    /\bi (ate|had|consumed|drank|cooked|made|ordered|grabbed|bought)\b/,
-    /\b(chicken|beef|fish|salmon|turkey|pork|rice|pasta|bread|salad|vegetables|fruits|eggs|oatmeal|yogurt|smoothie|sandwich|pizza|burger|tacos|soup|steak|apple|banana|protein shake)\b/
+    /\b(chicken|beef|fish|salmon|turkey|pork|rice|pasta|bread|salad|vegetables|eggs|oatmeal|yogurt|smoothie|sandwich|pizza|burger|tacos|soup|steak)\b.*\b(for\s+)?(breakfast|lunch|dinner|meal)\b/
   ];
   
   console.log('Checking message for meal logging keywords:', lowerMessage);
