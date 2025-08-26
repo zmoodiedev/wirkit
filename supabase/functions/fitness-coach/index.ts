@@ -39,12 +39,12 @@ serve(async (req) => {
     
     console.log('User fitness context:', userContext);
 
-    // Check if the user wants to log something
+    // Check if the user wants to log something or create workouts
     const loggedItems = await processUserRequest(message, userId);
     let logConfirmation = '';
     
     if (loggedItems.length > 0) {
-      logConfirmation = `\n\n✅ I've logged the following for you:\n${loggedItems.join('\n')}`;
+      logConfirmation = `\n\n✅ I've created/logged the following for you:\n${loggedItems.join('\n')}`;
     }
 
     const systemPrompt = `You are an expert AI fitness coach and nutritionist. Your role is to provide personalized, science-based fitness and nutrition guidance.
@@ -53,10 +53,12 @@ USER CONTEXT:
 ${userContext}
 
 SPECIAL ABILITIES:
+- When users ask you to create workouts, you can generate structured workout plans with specific exercises and sets
 - When users mention meals or food they've eaten, acknowledge that you've logged it
 - When users mention workouts or exercises they've done, acknowledge that you've logged it  
 - When users mention planning activities, acknowledge that you've added it to their planner
 - You can automatically log meals, workouts, and planner items based on user descriptions
+- You can create complete workout routines including exercises, sets, reps, and rest times
 
 INSTRUCTIONS:
 - Be encouraging, motivating, and supportive
@@ -129,8 +131,19 @@ async function processUserRequest(message: string, userId: string): Promise<stri
   const lowerMessage = message.toLowerCase();
 
   try {
+    // Detect workout creation
+    if (detectWorkoutCreation(lowerMessage)) {
+      const workoutData = await extractWorkoutCreationData(message);
+      if (workoutData) {
+        const result = await createWorkoutWithExercises(workoutData, userId);
+        if (result) {
+          loggedItems.push(`💪 Created workout: ${workoutData.name} with ${workoutData.exercises.length} exercises`);
+        }
+      }
+    }
+    
     // Detect workout logging
-    if (detectWorkoutLogging(lowerMessage)) {
+    else if (detectWorkoutLogging(lowerMessage)) {
       const workoutData = await extractWorkoutData(message);
       if (workoutData) {
         const result = await logWorkout(workoutData, userId);
@@ -192,6 +205,15 @@ function detectPlannerRequest(message: string): boolean {
     'want to', 'going to', 'will do', 'remind me'
   ];
   return plannerKeywords.some(keyword => message.includes(keyword));
+}
+
+function detectWorkoutCreation(message: string): boolean {
+  const creationKeywords = [
+    'create workout', 'make workout', 'build workout', 'design workout',
+    'workout plan', 'workout routine', 'training program', 'exercise routine',
+    'create a', 'make me a', 'generate a', 'build me'
+  ];
+  return creationKeywords.some(keyword => message.includes(keyword));
 }
 
 async function extractWorkoutData(message: string) {
@@ -527,5 +549,155 @@ async function getUserFitnessContext(userId: string): Promise<string> {
   } catch (error) {
     console.error('Error fetching user context:', error);
     return "Error loading user context. Provide general fitness guidance.";
+  }
+}
+
+async function extractWorkoutCreationData(message: string) {
+  const lowerMessage = message.toLowerCase();
+  
+  // Determine workout type and name
+  let workoutName = 'Custom Workout';
+  let workoutType = 'general';
+  let exercises: any[] = [];
+  
+  // Extract workout type
+  const workoutTypes = {
+    'push': { name: 'Push Day', type: 'strength' },
+    'pull': { name: 'Pull Day', type: 'strength' },
+    'leg': { name: 'Leg Day', type: 'strength' },
+    'upper': { name: 'Upper Body', type: 'strength' },
+    'lower': { name: 'Lower Body', type: 'strength' },
+    'full body': { name: 'Full Body Workout', type: 'strength' },
+    'cardio': { name: 'Cardio Session', type: 'cardio' },
+    'hiit': { name: 'HIIT Workout', type: 'cardio' },
+    'strength': { name: 'Strength Training', type: 'strength' },
+    'chest': { name: 'Chest Workout', type: 'strength' },
+    'back': { name: 'Back Workout', type: 'strength' },
+    'arms': { name: 'Arms Workout', type: 'strength' },
+    'shoulders': { name: 'Shoulder Workout', type: 'strength' },
+    'core': { name: 'Core Workout', type: 'strength' },
+    'abs': { name: 'Ab Workout', type: 'strength' }
+  };
+
+  for (const [key, value] of Object.entries(workoutTypes)) {
+    if (lowerMessage.includes(key)) {
+      workoutName = value.name;
+      workoutType = value.type;
+      break;
+    }
+  }
+
+  // Create exercises based on workout type
+  if (workoutType === 'strength') {
+    if (lowerMessage.includes('push') || lowerMessage.includes('chest')) {
+      exercises = [
+        { name: 'Bench Press', category: 'chest', rest_time: 120, sets: [{ reps: 8 }, { reps: 8 }, { reps: 8 }] },
+        { name: 'Push-ups', category: 'chest', rest_time: 60, sets: [{ reps: 12 }, { reps: 12 }, { reps: 12 }] },
+        { name: 'Overhead Press', category: 'shoulders', rest_time: 90, sets: [{ reps: 8 }, { reps: 8 }, { reps: 8 }] },
+        { name: 'Tricep Dips', category: 'arms', rest_time: 60, sets: [{ reps: 10 }, { reps: 10 }, { reps: 10 }] }
+      ];
+    } else if (lowerMessage.includes('pull') || lowerMessage.includes('back')) {
+      exercises = [
+        { name: 'Pull-ups', category: 'back', rest_time: 90, sets: [{ reps: 6 }, { reps: 6 }, { reps: 6 }] },
+        { name: 'Bent-over Row', category: 'back', rest_time: 90, sets: [{ reps: 8 }, { reps: 8 }, { reps: 8 }] },
+        { name: 'Lat Pulldown', category: 'back', rest_time: 60, sets: [{ reps: 10 }, { reps: 10 }, { reps: 10 }] },
+        { name: 'Bicep Curls', category: 'arms', rest_time: 60, sets: [{ reps: 12 }, { reps: 12 }, { reps: 12 }] }
+      ];
+    } else if (lowerMessage.includes('leg') || lowerMessage.includes('lower')) {
+      exercises = [
+        { name: 'Squats', category: 'legs', rest_time: 120, sets: [{ reps: 10 }, { reps: 10 }, { reps: 10 }] },
+        { name: 'Deadlifts', category: 'legs', rest_time: 150, sets: [{ reps: 6 }, { reps: 6 }, { reps: 6 }] },
+        { name: 'Lunges', category: 'legs', rest_time: 60, sets: [{ reps: 12 }, { reps: 12 }, { reps: 12 }] },
+        { name: 'Calf Raises', category: 'legs', rest_time: 45, sets: [{ reps: 15 }, { reps: 15 }, { reps: 15 }] }
+      ];
+    } else {
+      // Default full body workout
+      exercises = [
+        { name: 'Squats', category: 'legs', rest_time: 90, sets: [{ reps: 10 }, { reps: 10 }, { reps: 10 }] },
+        { name: 'Push-ups', category: 'chest', rest_time: 60, sets: [{ reps: 12 }, { reps: 12 }, { reps: 12 }] },
+        { name: 'Pull-ups', category: 'back', rest_time: 90, sets: [{ reps: 6 }, { reps: 6 }, { reps: 6 }] },
+        { name: 'Plank', category: 'core', rest_time: 45, sets: [{ reps: 1 }, { reps: 1 }, { reps: 1 }] }
+      ];
+    }
+  } else if (workoutType === 'cardio') {
+    exercises = [
+      { name: 'Running', category: 'cardio', rest_time: 60, sets: [{ reps: 1 }] },
+      { name: 'Jumping Jacks', category: 'cardio', rest_time: 30, sets: [{ reps: 50 }, { reps: 50 }, { reps: 50 }] },
+      { name: 'Burpees', category: 'cardio', rest_time: 60, sets: [{ reps: 10 }, { reps: 10 }, { reps: 10 }] },
+      { name: 'Mountain Climbers', category: 'cardio', rest_time: 45, sets: [{ reps: 20 }, { reps: 20 }, { reps: 20 }] }
+    ];
+  }
+
+  return {
+    name: workoutName,
+    description: `AI-generated ${workoutName.toLowerCase()} created from chat`,
+    date: new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0],
+    exercises: exercises
+  };
+}
+
+async function createWorkoutWithExercises(workoutData: any, userId: string): Promise<boolean> {
+  try {
+    // First create the workout
+    const { data: workout, error: workoutError } = await supabase
+      .from('workouts')
+      .insert({
+        user_id: userId,
+        name: workoutData.name,
+        description: workoutData.description,
+        date: workoutData.date,
+        is_completed: false
+      })
+      .select()
+      .single();
+
+    if (workoutError || !workout) {
+      console.error('Error creating workout:', workoutError);
+      return false;
+    }
+
+    console.log('Workout created with ID:', workout.id);
+
+    // Then create exercises for the workout
+    for (const exerciseData of workoutData.exercises) {
+      const { data: exercise, error: exerciseError } = await supabase
+        .from('exercises')
+        .insert({
+          workout_id: workout.id,
+          name: exerciseData.name,
+          category: exerciseData.category,
+          rest_time: exerciseData.rest_time
+        })
+        .select()
+        .single();
+
+      if (exerciseError || !exercise) {
+        console.error('Error creating exercise:', exerciseError);
+        continue;
+      }
+
+      // Create sets for each exercise
+      const sets = exerciseData.sets.map((set: any, index: number) => ({
+        exercise_id: exercise.id,
+        reps: set.reps,
+        weight: set.weight || null,
+        set_order: index + 1,
+        is_completed: false
+      }));
+
+      const { error: setsError } = await supabase
+        .from('exercise_sets')
+        .insert(sets);
+
+      if (setsError) {
+        console.error('Error creating sets:', setsError);
+      }
+    }
+
+    console.log('Workout with exercises created successfully');
+    return true;
+  } catch (error) {
+    console.error('Error creating workout with exercises:', error);
+    return false;
   }
 }
