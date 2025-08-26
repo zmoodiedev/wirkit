@@ -262,7 +262,13 @@ function detectPlannerRequest(message: string): boolean {
     'book', 'appointment', 'meeting', 'calendar', 'agenda',
     'plan to eat', 'plan to workout', 'schedule workout', 'schedule meal',
     'tomorrow I will', 'next I will', 'planning on', 'intend to',
-    'set up', 'arrange', 'organize', 'pencil in'
+    'set up', 'arrange', 'organize', 'pencil in',
+    'add', 'add a', 'add workout', 'add meal', 'put in calendar',
+    'every', 'weekly', 'monthly', 'recurring', 'regular',
+    'every monday', 'every tuesday', 'every wednesday', 'every thursday',
+    'every friday', 'every saturday', 'every sunday',
+    'all mondays', 'all tuesdays', 'all wednesdays', 'all thursdays',
+    'all fridays', 'all saturdays', 'all sundays'
   ];
   console.log('Checking message for planner keywords:', message);
   
