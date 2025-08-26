@@ -236,20 +236,21 @@ function detectWorkoutLogging(message: string): boolean {
 }
 
 function detectMealLogging(message: string): boolean {
-  const mealKeywords = [
-    'ate', 'had', 'consumed', 'drank', 'finished eating', 'just ate',
-    'breakfast', 'lunch', 'dinner', 'snack', 'meal',
-    'just had', 'eating', 'food', 'cooked', 'made',
-    'ordered', 'grabbed', 'picked up', 'bought food',
-    'chicken', 'beef', 'fish', 'salmon', 'turkey', 'pork',
-    'rice', 'pasta', 'bread', 'salad', 'vegetables', 'fruits',
-    'eggs', 'oatmeal', 'yogurt', 'smoothie', 'sandwich',
-    'pizza', 'burger', 'tacos', 'soup', 'steak', 'apple',
-    'banana', 'protein shake', 'coffee', 'calories'
-  ];
-  console.log('Checking message for meal logging keywords:', message);
+  const lowerMessage = message.toLowerCase();
   
-  const found = mealKeywords.some(keyword => message.includes(keyword));
+  // More specific meal logging patterns to avoid false positives
+  const mealPatterns = [
+    /\b(ate|had|consumed|drank|finished eating|just ate)\b/,
+    /\b(breakfast|lunch|dinner|snack|meal)\b/,
+    /\b(just had|eating|cooked|made|ordered|grabbed)\b.*\b(food|meal|breakfast|lunch|dinner)\b/,
+    /\b(bought|picked up)\b.*\bfood\b/,
+    /\bi (ate|had|consumed|drank|cooked|made|ordered|grabbed|bought)\b/,
+    /\b(chicken|beef|fish|salmon|turkey|pork|rice|pasta|bread|salad|vegetables|fruits|eggs|oatmeal|yogurt|smoothie|sandwich|pizza|burger|tacos|soup|steak|apple|banana|protein shake)\b/
+  ];
+  
+  console.log('Checking message for meal logging keywords:', lowerMessage);
+  
+  const found = mealPatterns.some(pattern => pattern.test(lowerMessage));
   console.log('Meal logging keyword found:', found);
   
   return found;
