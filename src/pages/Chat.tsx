@@ -254,40 +254,6 @@ const Chat = () => {
           </CardContent>
         </Card>
 
-        {/* Recommended Phrases */}
-        <Card className="shadow-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BookOpen size={20} className="text-primary" />
-              Recommended Phrases
-            </CardTitle>
-            <CardDescription>
-              Use these example phrases to help the AI coach understand your requests better
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {Object.entries(recommendedPhrases).map(([category, phrases]) => (
-                <div key={category} className="space-y-2">
-                  <h4 className="font-medium text-sm text-primary">{category}</h4>
-                  <div className="space-y-1">
-                    {phrases.map((phrase, index) => (
-                      <Button
-                        key={index}
-                        variant="ghost"
-                        className="h-auto p-2 text-xs text-left justify-start w-full hover:bg-accent"
-                        onClick={() => setMessage(phrase)}
-                      >
-                        "{phrase}"
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Chat Messages */}
         <Card className="shadow-card">
           <CardContent className="p-0">
@@ -399,6 +365,39 @@ const Chat = () => {
               <p className="text-xs text-muted-foreground mt-2 text-center">
                 💡 Try voice input by clicking the microphone or type your questions
               </p>
+            </div>
+          </CardContent>
+        </Card>
+        {/* Recommended Phrases */}
+        <Card className="shadow-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BookOpen size={20} className="text-primary" />
+              Recommended Phrases
+            </CardTitle>
+            <CardDescription>
+              Use these example phrases to help the AI coach understand your requests better
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {Object.entries(recommendedPhrases).map(([category, phrases]) => (
+                <div key={category} className="space-y-2">
+                  <h4 className="font-medium text-sm text-primary">{category}</h4>
+                  <div className="space-y-1">
+                    {phrases.map((phrase, index) => (
+                      <Button
+                        key={index}
+                        variant="ghost"
+                        className="h-auto p-2 text-xs text-left justify-start w-full hover:bg-accent"
+                        onClick={() => setMessage(phrase)}
+                      >
+                        "{phrase}"
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
