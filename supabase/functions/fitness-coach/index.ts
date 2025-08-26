@@ -239,7 +239,7 @@ async function extractWorkoutData(message: string) {
     name: workoutName,
     duration: duration,
     description: `Logged from chat: ${message.substring(0, 100)}`,
-    date: new Date().toISOString().split('T')[0]
+    date: new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0]
   };
 }
 
@@ -286,7 +286,7 @@ async function extractMealData(message: string) {
     protein: Math.round(calories * 0.15 / 4), // ~15% protein
     carbs: Math.round(calories * 0.45 / 4), // ~45% carbs  
     fat: Math.round(calories * 0.30 / 9), // ~30% fat
-    date: new Date().toISOString().split('T')[0]
+    date: new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0]
   };
 }
 
@@ -331,7 +331,7 @@ async function extractPlannerData(message: string) {
   return {
     title: title,
     type: type,
-    date: targetDate.toISOString().split('T')[0],
+    date: new Date(targetDate.getTime() - (targetDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0],
     time: time,
     duration: 60 // default 1 hour
   };

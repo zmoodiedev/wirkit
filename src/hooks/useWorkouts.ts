@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getTodayDate } from '@/lib/dateUtils';
 
 export interface ExerciseSet {
   id: string;
@@ -39,7 +40,7 @@ export const useWorkouts = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const today = new Date().toISOString().split('T')[0];
+      const today = getTodayDate();
       
       // Fetch today's workout
       const { data: workoutData } = await supabase
@@ -82,7 +83,7 @@ export const useWorkouts = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const today = new Date().toISOString().split('T')[0];
+      const today = getTodayDate();
 
       // Create a new workout
       const { data: workout, error: workoutError } = await supabase
@@ -274,7 +275,7 @@ export const useWorkouts = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const workoutDate = workout.date || new Date().toISOString().split('T')[0];
+      const workoutDate = workout.date || getTodayDate();
 
       const { data: newWorkout, error } = await supabase
         .from('workouts')
@@ -290,7 +291,7 @@ export const useWorkouts = () => {
       if (error) throw error;
 
       // If it's today's workout, set as current
-      const today = new Date().toISOString().split('T')[0];
+      const today = getTodayDate();
       if (workoutDate === today) {
         await fetchTodayWorkout();
       }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { getTodayDate, getDaysAgoDate } from '@/lib/dateUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -73,7 +74,7 @@ export const useFitnessData = () => {
         .single();
 
       // Fetch today's stats
-      const today = new Date().toISOString().split('T')[0];
+      const today = getTodayDate();
       const { data: statsData } = await supabase
         .from('daily_stats')
         .select('*')
@@ -82,9 +83,7 @@ export const useFitnessData = () => {
         .maybeSingle();
 
       // Fetch recent food entries (last 3 days to catch entries from previous days)
-      const threeDaysAgo = new Date();
-      threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-      const threeDaysAgoStr = threeDaysAgo.toISOString().split('T')[0];
+      const threeDaysAgoStr = getDaysAgoDate(3);
       
       console.log('Fetching food entries for user:', user.id, 'from date:', threeDaysAgoStr, 'to today:', today);
       const { data: foodData, error: foodError } = await supabase
@@ -136,7 +135,7 @@ export const useFitnessData = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const today = new Date().toISOString().split('T')[0];
+      const today = getTodayDate();
       
       const { error } = await supabase
         .from('daily_stats')
@@ -167,7 +166,7 @@ export const useFitnessData = () => {
         .insert({
           user_id: user.id,
           ...food,
-          date: new Date().toISOString().split('T')[0]
+          date: getTodayDate()
         })
         .select()
         .single();
@@ -237,7 +236,7 @@ export const useFitnessData = () => {
   };
 
   const recalculateDailyStats = async (entries: FoodEntry[]) => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayDate();
     const todaysEntries = entries.filter(entry => entry.date === today);
     
     const newStats = todaysEntries.reduce((totals, entry) => ({
@@ -330,7 +329,7 @@ export const useFitnessData = () => {
 
     // Set up real-time subscription for food entries
     if (user) {
-      const today = new Date().toISOString().split('T')[0];
+      const today = getTodayDate();
       
       const channel = supabase
         .channel('food-entries-changes')

@@ -13,6 +13,7 @@ import Layout from '@/components/Layout';
 import AddFoodDialog from '@/components/AddFoodDialog';
 import FoodSearchDialog from '@/components/FoodSearchDialog';
 import EditFoodDialog from '@/components/EditFoodDialog';
+import { getTodayDate } from '@/lib/dateUtils';
 import { 
   Plus, 
   Search, 
@@ -64,7 +65,7 @@ const Diet = () => {
   }
 
   const getMealEntries = (meal: string) => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayDate();
     return foodEntries.filter(entry => entry.meal_type === meal && entry.date === today);
   };
 
