@@ -134,6 +134,20 @@ const Dashboard = () => {
                   className="h-3" 
                 />
               </div>
+              <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                <div>
+                  <div className="font-medium text-blue-600">{dailyStats?.protein_consumed || 0}g</div>
+                  <div className="text-muted-foreground">Protein</div>
+                </div>
+                <div>
+                  <div className="font-medium text-orange-600">{dailyStats?.carbs_consumed || 0}g</div>
+                  <div className="text-muted-foreground">Carbs</div>
+                </div>
+                <div>
+                  <div className="font-medium text-purple-600">{dailyStats?.fat_consumed || 0}g</div>
+                  <div className="text-muted-foreground">Fat</div>
+                </div>
+              </div>
               <Button asChild className="w-full" variant="outline">
                 <Link to="/diet">
                   <Apple size={16} className="mr-2" />
