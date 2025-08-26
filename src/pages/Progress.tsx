@@ -59,7 +59,7 @@ const Progress = () => {
   const stats = {
     currentWeight: latestEntry?.weight || 0,
     startWeight: weightProgress.length > 0 ? weightProgress[0].weight : 0,
-    goalWeight: profile?.goal_weight || 0, // Default goal weight
+    goalWeight: profile.goal_weight || 0, // Default goal weight
     bodyFat: latestEntry?.body_fat_percentage || 0,
     totalWorkouts: exerciseRecords.length,
     streakDays: 0, // TODO: Calculate streak from daily stats
