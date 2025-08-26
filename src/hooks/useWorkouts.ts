@@ -35,6 +35,54 @@ export const useWorkouts = () => {
   const [loading, setLoading] = useState(true);
   const [allWorkouts, setAllWorkouts] = useState<Workout[]>([]);
 
+  const fetchAllWorkouts = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Fetch all recent workouts (last 30 days)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      const { data: workoutsData } = await supabase
+        .from('workouts')
+        .select(`
+          *,
+          exercises (
+            *,
+            exercise_sets (*)
+          )
+        `)
+        .eq('user_id', user.id)
+        .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
+        .order('created_at', { ascending: false });
+
+      if (workoutsData) {
+        // Transform the data to match our interface
+        const workouts: Workout[] = workoutsData.map((workoutData: any) => ({
+          ...workoutData,
+          exercises: workoutData.exercises ? workoutData.exercises.map((exercise: any) => ({
+            ...exercise,
+            sets: exercise.exercise_sets ? exercise.exercise_sets.sort((a: any, b: any) => a.set_order - b.set_order) : []
+          })) : []
+        }));
+        setAllWorkouts(workouts);
+
+        // Set current workout as today's most recent workout
+        const today = getTodayDate();
+        const todayWorkout = workouts.find(w => w.date === today);
+        setCurrentWorkout(todayWorkout || null);
+      } else {
+        setAllWorkouts([]);
+        setCurrentWorkout(null);
+      }
+    } catch (error) {
+      console.error('Error fetching workouts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const fetchTodayWorkout = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -71,6 +119,9 @@ export const useWorkouts = () => {
       } else {
         setCurrentWorkout(null);
       }
+      
+      // Refresh all workouts to ensure recent activity is updated
+      await fetchAllWorkouts();
     } catch (error) {
       console.error('Error fetching workout:', error);
     } finally {
@@ -293,7 +344,7 @@ export const useWorkouts = () => {
       // If it's today's workout, set as current
       const today = getTodayDate();
       if (workoutDate === today) {
-        await fetchTodayWorkout();
+        await fetchAllWorkouts(); // Refresh all workouts instead of just today's
       }
       
       return newWorkout;
@@ -391,7 +442,27 @@ export const useWorkouts = () => {
   };
 
   useEffect(() => {
-    fetchTodayWorkout();
+    fetchAllWorkouts();
+    
+    // Set up real-time subscription for workouts
+    const subscription = supabase
+      .channel('workouts-changes')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'workouts' 
+        }, 
+        () => {
+          // Refresh workouts when any change occurs
+          fetchAllWorkouts();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Timer effect - runs when workout is active
@@ -428,6 +499,6 @@ export const useWorkouts = () => {
     updateSetWeight,
     getCompletedSets,
     getTotalSets,
-    refetch: fetchTodayWorkout
+    refetch: fetchAllWorkouts
   };
 };
