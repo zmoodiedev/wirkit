@@ -5,6 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Layout from '@/components/Layout';
 import { AddProgressDialog } from '@/components/AddProgressDialog';
 import { AddRecordDialog } from '@/components/AddRecordDialog';
+import AddProgressPhotoDialog from '@/components/AddProgressPhotoDialog';
+import ProgressPhotoGallery from '@/components/ProgressPhotoGallery';
 import { useProgress } from '@/hooks/useProgress';
 import { useFitnessData } from '@/hooks/useFitnessData';
 import { format } from 'date-fns';
@@ -313,21 +315,16 @@ const Progress = () => {
 
               <Card className="shadow-card">
                 <CardHeader>
-                  <CardTitle>Progress Photos</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <Camera size={20} className="text-primary" />
+                      Progress Photos
+                    </CardTitle>
+                    <AddProgressPhotoDialog />
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 gap-2 mb-4">
-                    <div className="aspect-square bg-muted rounded-lg flex items-center justify-center">
-                      <Camera size={24} className="text-muted-foreground" />
-                    </div>
-                    <div className="aspect-square bg-muted rounded-lg flex items-center justify-center">
-                      <Camera size={24} className="text-muted-foreground" />
-                    </div>
-                  </div>
-                  <Button variant="outline" className="w-full">
-                    <Camera size={16} className="mr-2" />
-                    Add Photo
-                  </Button>
+                  <ProgressPhotoGallery />
                 </CardContent>
               </Card>
             </div>
