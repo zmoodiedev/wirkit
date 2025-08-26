@@ -350,39 +350,96 @@ async function extractWorkoutData(message: string) {
 
 async function extractMealData(message: string) {
   const lowerMessage = message.toLowerCase();
+  console.log('Extracting meal data from:', message);
   
-  // Determine meal type based on time or keywords
+  // Determine meal type based on explicit mentions first, then time
   let mealType = 'snack';
-  const hour = new Date().getHours();
   
-  if (lowerMessage.includes('breakfast') || (hour >= 6 && hour < 11)) {
+  if (lowerMessage.includes('breakfast')) {
     mealType = 'breakfast';
-  } else if (lowerMessage.includes('lunch') || (hour >= 11 && hour < 16)) {
+  } else if (lowerMessage.includes('lunch')) {
     mealType = 'lunch';
-  } else if (lowerMessage.includes('dinner') || (hour >= 16 && hour < 22)) {
+  } else if (lowerMessage.includes('dinner')) {
     mealType = 'dinner';
+  } else {
+    // Fall back to time-based detection
+    const hour = new Date().getHours();
+    if (hour >= 6 && hour < 11) {
+      mealType = 'breakfast';
+    } else if (hour >= 11 && hour < 16) {
+      mealType = 'lunch';
+    } else if (hour >= 16 && hour < 22) {
+      mealType = 'dinner';
+    }
   }
 
-  // Extract food name (basic parsing)
+  console.log('Detected meal type:', mealType);
+
+  // Extract food name - try to capture the full meal description
   let foodName = 'Mixed meal';
-  const foodKeywords = [
-    'chicken', 'beef', 'fish', 'salmon', 'turkey', 'pork',
-    'rice', 'pasta', 'bread', 'salad', 'vegetables', 'fruits',
-    'eggs', 'oatmeal', 'yogurt', 'smoothie', 'sandwich'
+  
+  // Look for common meal patterns
+  const mealPatterns = [
+    /(?:had|ate|consumed|eating)\s+([^.!?]+?)(?:\s+for\s+(?:breakfast|lunch|dinner)|$)/i,
+    /(?:breakfast|lunch|dinner).*?(?:was|is|had|ate)\s+([^.!?]+)/i,
+    /(?:made|cooked|ordered)\s+([^.!?]+?)(?:\s+for\s+(?:breakfast|lunch|dinner)|$)/i
   ];
 
-  for (const food of foodKeywords) {
-    if (lowerMessage.includes(food)) {
-      foodName = food.charAt(0).toUpperCase() + food.slice(1);
+  for (const pattern of mealPatterns) {
+    const match = message.match(pattern);
+    if (match && match[1]) {
+      foodName = match[1].trim();
+      // Clean up the food name
+      foodName = foodName.replace(/\s+for\s+(breakfast|lunch|dinner|today|yesterday).*$/i, '');
+      foodName = foodName.replace(/\s*,\s*and\s*/, ' and ');
       break;
     }
   }
 
-  // Basic calorie estimation
+  // If no pattern match, look for individual food items and combine them
+  if (foodName === 'Mixed meal') {
+    const foodKeywords = [
+      'chicken', 'beef', 'fish', 'salmon', 'turkey', 'pork', 'steak',
+      'rice', 'pasta', 'bread', 'noodles', 'quinoa', 'potatoes',
+      'salad', 'vegetables', 'veggies', 'broccoli', 'carrots', 'spinach',
+      'fruits', 'apple', 'banana', 'berries', 'orange',
+      'eggs', 'oatmeal', 'yogurt', 'smoothie', 'sandwich', 'burger',
+      'pizza', 'tacos', 'soup', 'beans', 'cheese', 'avocado'
+    ];
+
+    const foundFoods = foodKeywords.filter(food => lowerMessage.includes(food));
+    if (foundFoods.length > 0) {
+      foodName = foundFoods.join(' and ');
+    }
+  }
+
+  console.log('Extracted food name:', foodName);
+
+  // Smart calorie estimation based on meal type and food content
   let calories = 300; // default
-  if (mealType === 'breakfast') calories = 350;
-  else if (mealType === 'lunch') calories = 450;
-  else if (mealType === 'dinner') calories = 500;
+  
+  // Base calories by meal type
+  const baseMealCalories = {
+    'breakfast': 350,
+    'lunch': 450,
+    'dinner': 500,
+    'snack': 200
+  };
+  
+  calories = baseMealCalories[mealType] || 300;
+  
+  // Adjust based on food content
+  if (lowerMessage.includes('rice') || lowerMessage.includes('pasta') || lowerMessage.includes('bread')) {
+    calories += 100; // carbs add calories
+  }
+  if (lowerMessage.includes('chicken') || lowerMessage.includes('beef') || lowerMessage.includes('fish') || lowerMessage.includes('protein')) {
+    calories += 50; // protein
+  }
+  if (lowerMessage.includes('salad') || lowerMessage.includes('vegetables')) {
+    calories -= 50; // veggies are lower calorie
+  }
+
+  console.log('Estimated calories:', calories);
 
   return {
     name: foodName,
