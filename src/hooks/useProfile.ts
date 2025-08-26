@@ -61,6 +61,8 @@ export const useProfile = () => {
         .upsert({
           user_id: user.id,
           ...updates
+        }, {
+          onConflict: 'user_id'
         });
 
       if (error) throw error;
