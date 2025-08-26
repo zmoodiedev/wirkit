@@ -656,6 +656,8 @@ async function extractWorkoutCreationData(message: string) {
 
 async function createWorkoutWithExercises(workoutData: any, userId: string): Promise<boolean> {
   try {
+    console.log('Creating workout with data:', JSON.stringify(workoutData, null, 2));
+    
     // First create the workout
     const { data: workout, error: workoutError } = await supabase
       .from('workouts')
@@ -675,9 +677,18 @@ async function createWorkoutWithExercises(workoutData: any, userId: string): Pro
     }
 
     console.log('Workout created with ID:', workout.id);
+    console.log('Number of exercises to create:', workoutData.exercises?.length || 0);
 
     // Then create exercises for the workout
-    for (const exerciseData of workoutData.exercises) {
+    if (!workoutData.exercises || workoutData.exercises.length === 0) {
+      console.error('No exercises provided in workout data');
+      return false;
+    }
+
+    for (let i = 0; i < workoutData.exercises.length; i++) {
+      const exerciseData = workoutData.exercises[i];
+      console.log(`Creating exercise ${i + 1}:`, exerciseData.name);
+      
       const { data: exercise, error: exerciseError } = await supabase
         .from('exercises')
         .insert({
@@ -689,26 +700,41 @@ async function createWorkoutWithExercises(workoutData: any, userId: string): Pro
         .select()
         .single();
 
-      if (exerciseError || !exercise) {
-        console.error('Error creating exercise:', exerciseError);
+      if (exerciseError) {
+        console.error(`Error creating exercise ${exerciseData.name}:`, exerciseError);
         continue;
       }
 
+      if (!exercise) {
+        console.error(`No exercise data returned for ${exerciseData.name}`);
+        continue;
+      }
+
+      console.log(`Exercise created successfully: ${exercise.id}`);
+
       // Create sets for each exercise
-      const sets = exerciseData.sets.map((set: any, index: number) => ({
-        exercise_id: exercise.id,
-        reps: set.reps,
-        weight: set.weight || null,
-        set_order: index + 1,
-        is_completed: false
-      }));
+      if (exerciseData.sets && exerciseData.sets.length > 0) {
+        const sets = exerciseData.sets.map((set: any, index: number) => ({
+          exercise_id: exercise.id,
+          reps: set.reps,
+          weight: set.weight || null,
+          set_order: index + 1,
+          is_completed: false
+        }));
 
-      const { error: setsError } = await supabase
-        .from('exercise_sets')
-        .insert(sets);
+        console.log(`Creating ${sets.length} sets for exercise ${exerciseData.name}`);
 
-      if (setsError) {
-        console.error('Error creating sets:', setsError);
+        const { error: setsError } = await supabase
+          .from('exercise_sets')
+          .insert(sets);
+
+        if (setsError) {
+          console.error(`Error creating sets for ${exerciseData.name}:`, setsError);
+        } else {
+          console.log(`Sets created successfully for ${exerciseData.name}`);
+        }
+      } else {
+        console.log(`No sets provided for exercise ${exerciseData.name}`);
       }
     }
 
