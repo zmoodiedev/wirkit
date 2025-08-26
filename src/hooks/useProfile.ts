@@ -8,6 +8,7 @@ interface ProfileData {
   age: number | null;
   height: string | null;
   weight: number | null;
+  goal_weight: number | null;
   fitness_level: string | null;
   goals: string[] | null;
 }
@@ -24,7 +25,7 @@ export const useProfile = () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('display_name, age, height, weight, fitness_level, goals')
+        .select('display_name, age, height, weight, goal_weight, fitness_level, goals')
         .eq('user_id', user.id)
         .single();
 
@@ -37,6 +38,7 @@ export const useProfile = () => {
         age: null,
         height: null,
         weight: null,
+        goal_weight: null,
         fitness_level: null,
         goals: null,
       });
