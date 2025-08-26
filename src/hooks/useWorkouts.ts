@@ -61,10 +61,10 @@ export const useWorkouts = () => {
         // Transform the data to match our interface
         const workout: Workout = {
           ...workoutData,
-          exercises: workoutData.exercises.map((exercise: any) => ({
+          exercises: workoutData.exercises ? workoutData.exercises.map((exercise: any) => ({
             ...exercise,
-            sets: exercise.exercise_sets.sort((a: any, b: any) => a.set_order - b.set_order)
-          }))
+            sets: exercise.exercise_sets ? exercise.exercise_sets.sort((a: any, b: any) => a.set_order - b.set_order) : []
+          })) : []
         };
         setCurrentWorkout(workout);
       } else {

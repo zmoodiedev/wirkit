@@ -166,84 +166,102 @@ const Workout = () => {
 
         {/* Exercise List */}
         <div className="space-y-4">
-          {currentWorkout.exercises.map((exercise) => (
-            <Card key={exercise.id} className="shadow-card">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-lg">{exercise.name}</CardTitle>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge variant="secondary">{exercise.category}</Badge>
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <Timer size={14} />
-                        {exercise.rest_time}s rest
+          {currentWorkout.exercises.length > 0 ? (
+            currentWorkout.exercises.map((exercise) => (
+              <Card key={exercise.id} className="shadow-card">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-lg">{exercise.name}</CardTitle>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant="secondary">{exercise.category}</Badge>
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <Timer size={14} />
+                          {exercise.rest_time}s rest
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {exercise.sets.map((set, setIndex) => (
-                    <div 
-                      key={set.id}
-                      className={`flex items-center justify-between p-3 rounded-lg border transition-all ${
-                        set.is_completed 
-                          ? 'bg-success/10 border-success text-success-foreground' 
-                          : 'bg-muted/50 border-border hover:border-primary'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <Button
-                          size="sm"
-                          variant={set.is_completed ? "default" : "outline"}
-                          onClick={() => toggleSet(exercise.id, set.id)}
-                          className={set.is_completed ? "bg-success hover:bg-success/90" : ""}
-                        >
-                          {set.is_completed ? <Check size={16} /> : setIndex + 1}
-                        </Button>
-                        <div className="text-sm">
-                          <span className="font-medium">{set.reps} reps</span>
-                          {set.weight && (
-                            <span className="text-muted-foreground ml-2">
-                              @ {set.weight} lbs
-                            </span>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {exercise.sets.map((set, setIndex) => (
+                      <div 
+                        key={set.id}
+                        className={`flex items-center justify-between p-3 rounded-lg border transition-all ${
+                          set.is_completed 
+                            ? 'bg-success/10 border-success text-success-foreground' 
+                            : 'bg-muted/50 border-border hover:border-primary'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Button
+                            size="sm"
+                            variant={set.is_completed ? "default" : "outline"}
+                            onClick={() => toggleSet(exercise.id, set.id)}
+                            className={set.is_completed ? "bg-success hover:bg-success/90" : ""}
+                          >
+                            {set.is_completed ? <Check size={16} /> : setIndex + 1}
+                          </Button>
+                          <div className="text-sm">
+                            <span className="font-medium">{set.reps} reps</span>
+                            {set.weight && (
+                              <span className="text-muted-foreground ml-2">
+                                @ {set.weight} lbs
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          {set.weight !== undefined && (
+                            <div className="flex items-center gap-1">
+                              <Weight size={14} className="text-muted-foreground" />
+                              <Input
+                                type="number"
+                                value={set.weight || ''}
+                                className="w-16 h-8 text-center"
+                                onChange={(e) => {
+                                  const weight = parseFloat(e.target.value) || 0;
+                                  updateSetWeight(exercise.id, set.id, weight);
+                                }}
+                              />
+                            </div>
                           )}
+                          <Button size="sm" variant="ghost">
+                            <RotateCcw size={14} />
+                          </Button>
                         </div>
                       </div>
-                      
-                      <div className="flex items-center gap-2">
-                        {set.weight !== undefined && (
-                          <div className="flex items-center gap-1">
-                            <Weight size={14} className="text-muted-foreground" />
-                            <Input
-                              type="number"
-                              value={set.weight || ''}
-                              className="w-16 h-8 text-center"
-                              onChange={(e) => {
-                                const weight = parseFloat(e.target.value) || 0;
-                                updateSetWeight(exercise.id, set.id, weight);
-                              }}
-                            />
-                          </div>
-                        )}
-                        <Button size="sm" variant="ghost">
-                          <RotateCcw size={14} />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <Card className="shadow-card border-dashed">
+              <CardContent className="p-8 text-center">
+                <Plus size={48} className="mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-semibold mb-2">No Exercises Yet</h3>
+                <p className="text-muted-foreground mb-4">
+                  This workout was logged but doesn't have any exercises. Add some exercises to get started!
+                </p>
+                <AddExerciseDialog 
+                  workoutId={currentWorkout.id} 
+                  onAddExercise={(exercise) => addExercise(currentWorkout.id, exercise)}
+                />
               </CardContent>
             </Card>
-          ))}
+          )}
         </div>
 
         {/* Add Exercise Button */}
-        <AddExerciseDialog 
-          workoutId={currentWorkout.id} 
-          onAddExercise={(exercise) => addExercise(currentWorkout.id, exercise)}
-        />
+        {currentWorkout.exercises.length > 0 && (
+          <AddExerciseDialog 
+            workoutId={currentWorkout.id} 
+            onAddExercise={(exercise) => addExercise(currentWorkout.id, exercise)}
+          />
+        )}
 
         {/* Complete Workout */}
         {getTotalSets() > 0 && getCompletedSets() === getTotalSets() && (
