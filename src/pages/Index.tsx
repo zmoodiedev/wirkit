@@ -85,8 +85,8 @@ const Index = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8">
               <Button asChild size="lg" variant="hero">
-                <Link to="/signup">
-                  Get Started Free
+                <Link to="/login">
+                  Sign In to Continue
                   <ArrowRight size={20} />
                 </Link>
               </Button>
@@ -171,8 +171,8 @@ const Index = () => {
               </div>
 
               <Button asChild size="lg" className="bg-gradient-primary hover:shadow-glow transition-all">
-                <Link to="/signup">
-                  Start Your Journey
+                <Link to="/login">
+                  Sign In to Start
                   <ArrowRight size={20} />
                 </Link>
               </Button>
@@ -225,8 +225,8 @@ const Index = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8">
               <Button asChild size="lg" variant="hero">
-                <Link to="/signup">
-                  Get Started Now - It's Free
+                <Link to="/login">
+                  Sign In Now
                   <ArrowRight size={20} />
                 </Link>
               </Button>
@@ -250,9 +250,8 @@ const Index = () => {
             <p className="text-muted-foreground">
               Your personal fitness companion with AI-powered insights
             </p>
-            <div className="flex justify-center gap-6">
+            <div className="flex justify-center">
               <Link to="/login" className="text-primary hover:underline">Sign In</Link>
-              <Link to="/signup" className="text-primary hover:underline">Sign Up</Link>
             </div>
           </div>
         </div>
