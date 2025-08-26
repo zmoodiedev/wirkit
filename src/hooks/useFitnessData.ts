@@ -62,7 +62,7 @@ export const useFitnessData = () => {
       // Fetch user profile
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('*')
+        .select('display_name')
         .eq('user_id', user.id)
         .single();
 
