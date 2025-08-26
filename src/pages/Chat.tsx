@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import Layout from '@/components/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,7 +20,8 @@ import {
   Apple,
   Target,
   Calendar,
-  MessageCircle
+  MessageCircle,
+  BookOpen
 } from 'lucide-react';
 
 interface ChatMessage {
@@ -36,15 +38,36 @@ const Chat = () => {
   const [message, setMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: '1',
-      content: "Hi! I'm your AI fitness coach. I can help you log workouts, track meals, get exercise suggestions, and answer any fitness questions. What would you like to do today?",
-      sender: 'ai',
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    },
-  ]);
+  // Get today's date as key for localStorage
+  const getTodayKey = () => {
+    return `fitness-chat-${new Date().toDateString()}`;
+  };
+
+  // Load messages from localStorage for today
+  const loadTodaysMessages = (): ChatMessage[] => {
+    try {
+      const stored = localStorage.getItem(getTodayKey());
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (error) {
+      console.error('Error loading messages:', error);
+    }
+    
+    // Return default welcome message if no stored messages
+    return [
+      {
+        id: '1',
+        content: "Hi! I'm your AI fitness coach. I can help you log workouts, track meals, get exercise suggestions, and answer any fitness questions. What would you like to do today?",
+        sender: 'ai',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      },
+    ];
+  };
+
+  const [messages, setMessages] = useState<ChatMessage[]>(loadTodaysMessages);
 
   const quickActions = [
     { text: "Log today's workout", icon: Activity },
@@ -55,11 +78,61 @@ const Chat = () => {
 
   const suggestions = [
     "Log a meal",
-    "Get workout suggestions",
+    "Get workout suggestions", 
     "Check calorie intake",
     "Plan next workout",
     "Review progress"
   ];
+
+  const recommendedPhrases = {
+    "Logging Workouts": [
+      "I did 30 minutes of cardio on the treadmill",
+      "I completed 3 sets of 10 push-ups and 15 squats",
+      "I went for a 5 mile run this morning",
+      "I did a chest and tricep workout with bench press"
+    ],
+    "Logging Meals": [
+      "I ate a chicken salad for lunch with 200g chicken breast",
+      "I had 2 scrambled eggs and 1 slice of toast for breakfast", 
+      "I consumed a protein shake with banana after my workout",
+      "I ate grilled salmon with rice and vegetables for dinner"
+    ],
+    "Getting Suggestions": [
+      "What exercises should I do for leg day?",
+      "Can you suggest a healthy breakfast under 400 calories?",
+      "What's a good post-workout meal for muscle recovery?",
+      "I want to work on my core, what exercises do you recommend?"
+    ],
+    "Tracking Progress": [
+      "How many calories have I consumed today?",
+      "What's my weekly workout summary?",
+      "Am I meeting my protein goals this week?",
+      "Show me my progress towards my fitness goals"
+    ]
+  };
+
+  // Save messages to localStorage
+  const saveMessages = (newMessages: ChatMessage[]) => {
+    try {
+      localStorage.setItem(getTodayKey(), JSON.stringify(newMessages));
+    } catch (error) {
+      console.error('Error saving messages:', error);
+    }
+  };
+
+  // Auto-scroll to bottom when messages change
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  // Update localStorage when messages change
+  useEffect(() => {
+    saveMessages(messages);
+  }, [messages]);
 
   const handleSend = async () => {
     if (!message.trim() || !user) return;
@@ -181,10 +254,45 @@ const Chat = () => {
           </CardContent>
         </Card>
 
+        {/* Recommended Phrases */}
+        <Card className="shadow-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BookOpen size={20} className="text-primary" />
+              Recommended Phrases
+            </CardTitle>
+            <CardDescription>
+              Use these example phrases to help the AI coach understand your requests better
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {Object.entries(recommendedPhrases).map(([category, phrases]) => (
+                <div key={category} className="space-y-2">
+                  <h4 className="font-medium text-sm text-primary">{category}</h4>
+                  <div className="space-y-1">
+                    {phrases.map((phrase, index) => (
+                      <Button
+                        key={index}
+                        variant="ghost"
+                        className="h-auto p-2 text-xs text-left justify-start w-full hover:bg-accent"
+                        onClick={() => setMessage(phrase)}
+                      >
+                        "{phrase}"
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Chat Messages */}
         <Card className="shadow-card">
           <CardContent className="p-0">
-            <div className="h-96 overflow-y-auto p-4 space-y-4">
+            <ScrollArea className="h-96 p-4">
+              <div className="space-y-4">
               {messages.map((msg) => (
                 <div
                   key={msg.id}
@@ -227,7 +335,9 @@ const Chat = () => {
                   </div>
                 </div>
               )}
-            </div>
+              <div ref={messagesEndRef} />
+              </div>
+            </ScrollArea>
             
             {/* Input Area */}
             <div className="border-t p-4">
