@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 import Layout from '@/components/Layout';
 import { 
   TrendingUp, 
@@ -11,13 +12,19 @@ import {
   Dumbbell, 
   Apple,
   Calendar,
-  MessageCircle
+  MessageCircle,
+  ChefHat,
+  Play
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useFitnessData } from '@/hooks/useFitnessData';
+import { useWorkouts } from '@/hooks/useWorkouts';
+import { usePlannedItems } from '@/hooks/usePlannedItems';
 
 const Dashboard = () => {
-  const { userGoals, dailyStats, profile, loading } = useFitnessData();
+  const { userGoals, dailyStats, profile, loading, foodEntries } = useFitnessData();
+  const { allWorkouts } = useWorkouts();
+  const { plannedItems } = usePlannedItems();
 
   if (loading) {
     return (
@@ -160,6 +167,109 @@ const Dashboard = () => {
                   Start Workout
                 </Link>
               </Button>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Recent Activity */}
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Recent Workouts */}
+          <Card className="shadow-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Dumbbell size={20} className="text-primary" />
+                Recent Workouts
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {allWorkouts.slice(0, 3).map((workout) => (
+                <div key={workout.id} className="flex items-center justify-between p-3 rounded-lg border">
+                  <div className="flex items-center gap-3">
+                    <Play size={16} className="text-primary" />
+                    <div>
+                      <div className="font-medium text-sm">{workout.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {workout.date === new Date().toISOString().split('T')[0] ? 'Today' : 
+                         workout.date === new Date(Date.now() - 86400000).toISOString().split('T')[0] ? 'Yesterday' : 
+                         workout.date}
+                      </div>
+                    </div>
+                  </div>
+                  <Badge variant="secondary">{workout.duration_minutes}m</Badge>
+                </div>
+              ))}
+              {allWorkouts.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No recent workouts. Start your first workout today!
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Today's Meals */}
+          <Card className="shadow-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <ChefHat size={20} className="text-orange-500" />
+                Today's Meals
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {foodEntries
+                .filter(entry => entry.date === new Date().toISOString().split('T')[0])
+                .slice(0, 4)
+                .map((meal) => (
+                <div key={meal.id} className="flex items-center justify-between p-3 rounded-lg border">
+                  <div className="flex items-center gap-3">
+                    <Apple size={16} className="text-orange-500" />
+                    <div>
+                      <div className="font-medium text-sm">{meal.name}</div>
+                      <div className="text-xs text-muted-foreground capitalize">{meal.meal_type}</div>
+                    </div>
+                  </div>
+                  <Badge variant="secondary">{meal.calories} cal</Badge>
+                </div>
+              ))}
+              {foodEntries.filter(entry => entry.date === new Date().toISOString().split('T')[0]).length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No meals logged yet today. Log your first meal!
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Today's Plan */}
+          <Card className="shadow-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Calendar size={20} className="text-blue-500" />
+                Today's Plan
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {plannedItems
+                .filter(item => item.date === new Date().toISOString().split('T')[0])
+                .slice(0, 3)
+                .map((item) => (
+                <div key={item.id} className="flex items-center justify-between p-3 rounded-lg border">
+                  <div className="flex items-center gap-3">
+                    {item.type === 'workout' ? 
+                      <Dumbbell size={16} className="text-primary" /> : 
+                      <ChefHat size={16} className="text-orange-500" />
+                    }
+                    <div>
+                      <div className="font-medium text-sm">{item.title}</div>
+                      <div className="text-xs text-muted-foreground">{item.time}</div>
+                    </div>
+                  </div>
+                  {item.completed && <Badge variant="secondary">Done</Badge>}
+                </div>
+              ))}
+              {plannedItems.filter(item => item.date === new Date().toISOString().split('T')[0]).length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No plans for today. Create your schedule in the Planner!
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>
