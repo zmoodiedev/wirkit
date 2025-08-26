@@ -183,7 +183,7 @@ async function processUserRequest(message: string, userId: string): Promise<stri
     const isPlannerRequest = detectPlannerRequest(lowerMessage);
     console.log('Planner request detected:', isPlannerRequest);
     
-    if (isPlannerRequest && !isWorkoutRelated(lowerMessage) && !isMealRelated(lowerMessage)) {
+    if (isPlannerRequest) {
       console.log('Processing planner request...');
       const plannerDataArray = await extractPlannerData(message);
       console.log('Extracted planner data:', JSON.stringify(plannerDataArray, null, 2));
