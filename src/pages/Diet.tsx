@@ -63,7 +63,8 @@ const Diet = () => {
   }
 
   const getMealEntries = (meal: string) => {
-    return foodEntries.filter(entry => entry.meal_type === meal);
+    const today = new Date().toISOString().split('T')[0];
+    return foodEntries.filter(entry => entry.meal_type === meal && entry.date === today);
   };
 
   const getMealCalories = (meal: string) => {

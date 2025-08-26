@@ -30,6 +30,7 @@ export interface FoodEntry {
   fat: number;
   meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack';
   logged_at: string;
+  date: string;
 }
 
 export interface CustomFood {
@@ -52,6 +53,7 @@ export const useFitnessData = () => {
   const [loading, setLoading] = useState(true);
 
   const fetchUserData = async () => {
+    console.log('Fetching user data...');
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -79,13 +81,24 @@ export const useFitnessData = () => {
         .eq('date', today)
         .maybeSingle();
 
-      // Fetch today's food entries
-      const { data: foodData } = await supabase
+      // Fetch recent food entries (last 3 days to catch entries from previous days)
+      const threeDaysAgo = new Date();
+      threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+      const threeDaysAgoStr = threeDaysAgo.toISOString().split('T')[0];
+      
+      console.log('Fetching food entries for user:', user.id, 'from date:', threeDaysAgoStr, 'to today:', today);
+      const { data: foodData, error: foodError } = await supabase
         .from('food_entries')
         .select('*')
         .eq('user_id', user.id)
-        .eq('date', today)
+        .gte('date', threeDaysAgoStr)
+        .lte('date', today)
         .order('logged_at', { ascending: true });
+
+      console.log('Food entries response:', { foodData, foodError });
+      
+      // Filter today's entries for stats calculation
+      const todaysFoodEntries = (foodData || []).filter(entry => entry.date === today);
 
       // Fetch user's custom foods
       const { data: customFoodData } = await supabase
@@ -106,6 +119,11 @@ export const useFitnessData = () => {
       });
       setFoodEntries((foodData || []) as FoodEntry[]);
       setCustomFoods((customFoodData || []) as CustomFood[]);
+      
+      // Calculate daily stats from today's food entries only
+      if (todaysFoodEntries.length > 0) {
+        recalculateDailyStats(todaysFoodEntries as FoodEntry[]);
+      }
     } catch (error) {
       console.error('Error fetching user data:', error);
     } finally {
@@ -137,7 +155,7 @@ export const useFitnessData = () => {
     }
   };
 
-  const addFoodEntry = async (food: Omit<FoodEntry, 'id' | 'logged_at'>) => {
+  const addFoodEntry = async (food: Omit<FoodEntry, 'id' | 'logged_at' | 'date'>) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -168,7 +186,7 @@ export const useFitnessData = () => {
     await updateDailyStats({ water_intake: newWaterIntake });
   };
 
-  const editFoodEntry = async (id: string, updates: Partial<Omit<FoodEntry, 'id' | 'logged_at'>>) => {
+  const editFoodEntry = async (id: string, updates: Partial<Omit<FoodEntry, 'id' | 'logged_at' | 'date'>>) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
