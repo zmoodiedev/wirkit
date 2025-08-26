@@ -58,8 +58,10 @@ export const useProfile = () => {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update(updates)
-        .eq('user_id', user.id);
+        .upsert({
+          user_id: user.id,
+          ...updates
+        });
 
       if (error) throw error;
 
