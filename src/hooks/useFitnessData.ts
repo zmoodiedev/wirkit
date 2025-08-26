@@ -145,6 +145,8 @@ export const useFitnessData = () => {
           date: today,
           ...dailyStats,
           ...updates
+        }, {
+          onConflict: 'user_id,date'
         });
 
       if (!error) {
