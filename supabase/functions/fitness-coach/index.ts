@@ -92,6 +92,8 @@ function generateFitnessResponse(message: string, userContext: any, logConfirmat
     
     if (lowerMessage.includes('create') || lowerMessage.includes('make') || lowerMessage.includes('build')) {
       response += "\n\nWhat's your goal for this workout? Are you focusing on strength, cardio, or specific muscle groups?";
+    } else if (lowerMessage.includes('add') && (lowerMessage.includes('exercise') || lowerMessage.includes('workout'))) {
+      response += "\n\nWhat exercises would you like to add? I can add them to your current workout!";
     } else {
       response += "\n\nHow are you feeling after that workout? Ready for your next session?";
     }
@@ -155,6 +157,27 @@ async function processUserRequest(message: string, userId: string): Promise<stri
         
         if (result) {
           loggedItems.push(`💪 Created workout: ${workoutData.name} with ${workoutData.exercises.length} exercises`);
+        }
+      }
+      return loggedItems; // Return early to prevent other detections
+    }
+    
+    // Detect adding exercises to existing workout
+    const isAddingExercises = detectAddingExercises(lowerMessage);
+    console.log('Adding exercises detected:', isAddingExercises);
+    
+    if (isAddingExercises) {
+      console.log('Extracting exercise addition data...');
+      const exerciseData = await extractExerciseAdditionData(message, userId);
+      console.log('Extracted exercise data:', JSON.stringify(exerciseData, null, 2));
+      
+      if (exerciseData && exerciseData.exercises.length > 0) {
+        console.log('Adding exercises to existing workout...');
+        const result = await addExercisesToWorkout(exerciseData, userId);
+        console.log('Exercise addition result:', result);
+        
+        if (result) {
+          loggedItems.push(`🏋️ Added ${exerciseData.exercises.length} exercises to your workout`);
         }
       }
       return loggedItems; // Return early to prevent other detections
@@ -292,6 +315,23 @@ function detectPlannerRequest(message: string): boolean {
   
   const found = plannerKeywords.some(keyword => message.includes(keyword));
   console.log('Planner keyword found:', found);
+  
+  return found;
+}
+
+function detectAddingExercises(message: string): boolean {
+  const addExerciseKeywords = [
+    'add exercise', 'add exercises', 'add to workout', 'add to my workout',
+    'include exercise', 'include exercises', 'put in workout', 'insert exercise',
+    'more exercises', 'additional exercises', 'extra exercises',
+    'add bicep curls', 'add squats', 'add push-ups', 'add pull-ups',
+    'add bench press', 'add deadlifts', 'add shoulder press',
+    'add some', 'throw in', 'include some', 'also do'
+  ];
+  console.log('Checking message for add exercise keywords:', message);
+  
+  const found = addExerciseKeywords.some(keyword => message.includes(keyword));
+  console.log('Add exercise keyword found:', found);
   
   return found;
 }
@@ -892,6 +932,133 @@ async function extractWorkoutCreationData(message: string) {
     date: new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0],
     exercises: exercises
   };
+}
+
+async function extractExerciseAdditionData(message: string, userId: string) {
+  const lowerMessage = message.toLowerCase();
+  
+  // First, try to find today's workout to add exercises to
+  const today = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+  
+  const { data: todayWorkouts } = await supabase
+    .from('workouts')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('date', today)
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  if (!todayWorkouts || todayWorkouts.length === 0) {
+    console.log('No workout found for today to add exercises to');
+    return null;
+  }
+
+  const targetWorkout = todayWorkouts[0];
+  console.log('Found target workout:', targetWorkout);
+
+  // Extract exercises from the message
+  let exercises: any[] = [];
+
+  // Common exercise mappings
+  const exerciseDatabase = {
+    'bicep curl': { name: 'Bicep Curls', category: 'arms', rest_time: 60, sets: [{ reps: 12 }, { reps: 12 }, { reps: 10 }] },
+    'squats': { name: 'Squats', category: 'legs', rest_time: 90, sets: [{ reps: 12 }, { reps: 10 }, { reps: 8 }] },
+    'push-up': { name: 'Push-ups', category: 'chest', rest_time: 60, sets: [{ reps: 15 }, { reps: 12 }, { reps: 10 }] },
+    'pull-up': { name: 'Pull-ups', category: 'back', rest_time: 90, sets: [{ reps: 8 }, { reps: 6 }, { reps: 5 }] },
+    'bench press': { name: 'Bench Press', category: 'chest', rest_time: 120, sets: [{ reps: 8 }, { reps: 8 }, { reps: 6 }] },
+    'deadlift': { name: 'Deadlifts', category: 'legs', rest_time: 150, sets: [{ reps: 6 }, { reps: 5 }, { reps: 4 }] },
+    'shoulder press': { name: 'Shoulder Press', category: 'shoulders', rest_time: 90, sets: [{ reps: 10 }, { reps: 8 }, { reps: 6 }] },
+    'tricep dip': { name: 'Tricep Dips', category: 'arms', rest_time: 60, sets: [{ reps: 12 }, { reps: 10 }, { reps: 8 }] },
+    'lat pulldown': { name: 'Lat Pulldown', category: 'back', rest_time: 75, sets: [{ reps: 12 }, { reps: 10 }, { reps: 8 }] },
+    'leg press': { name: 'Leg Press', category: 'legs', rest_time: 90, sets: [{ reps: 15 }, { reps: 12 }, { reps: 10 }] },
+    'plank': { name: 'Plank', category: 'core', rest_time: 60, sets: [{ reps: 1 }, { reps: 1 }, { reps: 1 }] },
+    'burpees': { name: 'Burpees', category: 'cardio', rest_time: 60, sets: [{ reps: 10 }, { reps: 8 }, { reps: 6 }] }
+  };
+
+  // Look for exercises mentioned in the message
+  for (const [key, exercise] of Object.entries(exerciseDatabase)) {
+    if (lowerMessage.includes(key)) {
+      exercises.push(exercise);
+    }
+  }
+
+  // If no specific exercises found, suggest some based on workout type or add default
+  if (exercises.length === 0) {
+    // Add a default exercise based on common requests
+    if (lowerMessage.includes('arms') || lowerMessage.includes('bicep') || lowerMessage.includes('tricep')) {
+      exercises.push(exerciseDatabase['bicep curl']);
+    } else if (lowerMessage.includes('legs') || lowerMessage.includes('lower')) {
+      exercises.push(exerciseDatabase['squats']);
+    } else if (lowerMessage.includes('chest') || lowerMessage.includes('push')) {
+      exercises.push(exerciseDatabase['push-up']);
+    } else if (lowerMessage.includes('back') || lowerMessage.includes('pull')) {
+      exercises.push(exerciseDatabase['pull-up']);
+    } else {
+      // Default to a versatile exercise
+      exercises.push(exerciseDatabase['push-up']);
+    }
+  }
+
+  return {
+    workoutId: targetWorkout.id,
+    workoutName: targetWorkout.name,
+    exercises: exercises
+  };
+}
+
+async function addExercisesToWorkout(exerciseData: any, userId: string): Promise<boolean> {
+  try {
+    console.log('Adding exercises to workout:', exerciseData.workoutId);
+
+    for (const exerciseInfo of exerciseData.exercises) {
+      // Create the exercise
+      const { data: exercise, error: exerciseError } = await supabase
+        .from('exercises')
+        .insert({
+          workout_id: exerciseData.workoutId,
+          name: exerciseInfo.name,
+          category: exerciseInfo.category,
+          rest_time: exerciseInfo.rest_time
+        })
+        .select()
+        .single();
+
+      if (exerciseError) {
+        console.error('Error creating exercise:', exerciseError);
+        continue;
+      }
+
+      console.log('Created exercise:', exercise);
+
+      // Create the sets for this exercise
+      if (exerciseInfo.sets && exerciseInfo.sets.length > 0) {
+        const setsToInsert = exerciseInfo.sets.map((set: any, index: number) => ({
+          exercise_id: exercise.id,
+          reps: set.reps,
+          weight: set.weight || null,
+          set_order: index + 1,
+          is_completed: false
+        }));
+
+        const { error: setsError } = await supabase
+          .from('exercise_sets')
+          .insert(setsToInsert);
+
+        if (setsError) {
+          console.error('Error creating sets:', setsError);
+        } else {
+          console.log('Created sets for exercise:', exercise.name);
+        }
+      }
+    }
+
+    console.log('Successfully added exercises to workout');
+    return true;
+
+  } catch (error) {
+    console.error('Error in addExercisesToWorkout:', error);
+    return false;
+  }
 }
 
 async function createWorkoutWithExercises(workoutData: any, userId: string): Promise<boolean> {
