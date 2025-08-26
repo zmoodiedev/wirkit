@@ -162,15 +162,6 @@ const Diet = () => {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* Date Header */}
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-foreground mb-2">
-            {format(currentDate, 'EEEE, MMMM do')}
-          </h1>
-          <p className="text-muted-foreground">
-            {format(currentDate, 'yyyy')}
-          </p>
-        </div>
 
         {/* Daily Overview */}
         <Card className="bg-gradient-hero text-white border-0">
@@ -213,6 +204,16 @@ const Diet = () => {
             />
           </CardContent>
         </Card>
+        
+        {/* Date Header */}
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-foreground mb-2">
+            {format(currentDate, 'EEEE, MMMM do')}
+          </h1>
+          <p className="text-muted-foreground">
+            {format(currentDate, 'yyyy')}
+          </p>
+        </div>
 
         <Tabs defaultValue="log" className="space-y-6">
           <TabsList className="grid w-full grid-cols-3">
