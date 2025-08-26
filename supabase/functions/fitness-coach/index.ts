@@ -131,7 +131,7 @@ async function processUserRequest(message: string, userId: string): Promise<stri
   const lowerMessage = message.toLowerCase();
 
   try {
-    // Detect workout creation
+    // Detect workout creation (highest priority)
     if (detectWorkoutCreation(lowerMessage)) {
       const workoutData = await extractWorkoutCreationData(message);
       if (workoutData) {
@@ -140,10 +140,11 @@ async function processUserRequest(message: string, userId: string): Promise<stri
           loggedItems.push(`💪 Created workout: ${workoutData.name} with ${workoutData.exercises.length} exercises`);
         }
       }
+      return loggedItems; // Return early to prevent other detections
     }
     
     // Detect workout logging
-    else if (detectWorkoutLogging(lowerMessage)) {
+    if (detectWorkoutLogging(lowerMessage)) {
       const workoutData = await extractWorkoutData(message);
       if (workoutData) {
         const result = await logWorkout(workoutData, userId);
@@ -151,10 +152,11 @@ async function processUserRequest(message: string, userId: string): Promise<stri
           loggedItems.push(`🏋️ Workout: ${workoutData.name} (${workoutData.duration} minutes)`);
         }
       }
+      return loggedItems; // Return early to prevent other detections
     }
 
-    // Detect meal logging
-    if (detectMealLogging(lowerMessage)) {
+    // Detect meal logging (only if not workout related)
+    if (detectMealLogging(lowerMessage) && !isWorkoutRelated(lowerMessage)) {
       const mealData = await extractMealData(message);
       if (mealData) {
         const result = await logMeal(mealData, userId);
@@ -162,10 +164,11 @@ async function processUserRequest(message: string, userId: string): Promise<stri
           loggedItems.push(`🍽️ Meal: ${mealData.name} (${mealData.calories} calories)`);
         }
       }
+      return loggedItems; // Return early to prevent other detections
     }
 
-    // Detect planner item
-    if (detectPlannerRequest(lowerMessage)) {
+    // Detect planner item (only if not workout or meal related)
+    if (detectPlannerRequest(lowerMessage) && !isWorkoutRelated(lowerMessage) && !isMealRelated(lowerMessage)) {
       const plannerData = await extractPlannerData(message);
       if (plannerData) {
         const result = await logPlannerItem(plannerData, userId);
@@ -211,9 +214,24 @@ function detectWorkoutCreation(message: string): boolean {
   const creationKeywords = [
     'create workout', 'make workout', 'build workout', 'design workout',
     'workout plan', 'workout routine', 'training program', 'exercise routine',
-    'create a', 'make me a', 'generate a', 'build me'
+    'generate workout', 'build me a workout', 'create a workout'
   ];
   return creationKeywords.some(keyword => message.includes(keyword));
+}
+
+function isWorkoutRelated(message: string): boolean {
+  const workoutKeywords = [
+    'workout', 'exercise', 'training', 'gym', 'fitness', 'lift', 'run', 'cardio',
+    'strength', 'push', 'pull', 'leg', 'chest', 'back', 'arms', 'shoulders'
+  ];
+  return workoutKeywords.some(keyword => message.includes(keyword));
+}
+
+function isMealRelated(message: string): boolean {
+  const mealKeywords = [
+    'meal', 'food', 'eat', 'breakfast', 'lunch', 'dinner', 'snack', 'calories'
+  ];
+  return mealKeywords.some(keyword => message.includes(keyword));
 }
 
 async function extractWorkoutData(message: string) {
