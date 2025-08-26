@@ -130,12 +130,24 @@ async function processUserRequest(message: string, userId: string): Promise<stri
   const loggedItems: string[] = [];
   const lowerMessage = message.toLowerCase();
 
+  console.log('Processing user message:', message);
+  console.log('Lowercase message:', lowerMessage);
+
   try {
     // Detect workout creation (highest priority)
-    if (detectWorkoutCreation(lowerMessage)) {
+    const isWorkoutCreation = detectWorkoutCreation(lowerMessage);
+    console.log('Workout creation detected:', isWorkoutCreation);
+    
+    if (isWorkoutCreation) {
+      console.log('Extracting workout creation data...');
       const workoutData = await extractWorkoutCreationData(message);
+      console.log('Extracted workout data:', JSON.stringify(workoutData, null, 2));
+      
       if (workoutData) {
+        console.log('Creating workout with exercises...');
         const result = await createWorkoutWithExercises(workoutData, userId);
+        console.log('Workout creation result:', result);
+        
         if (result) {
           loggedItems.push(`💪 Created workout: ${workoutData.name} with ${workoutData.exercises.length} exercises`);
         }
