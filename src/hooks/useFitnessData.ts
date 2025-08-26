@@ -322,10 +322,11 @@ export const useFitnessData = () => {
                 return prev;
               }
               const updatedEntries = [...prev, newEntry];
-              // Recalculate stats with new entry
-              recalculateDailyStats(updatedEntries);
+              // Recalculate stats with new entry - we'll do this separately
               return updatedEntries;
             });
+            // Trigger a fresh fetch to ensure data consistency
+            fetchUserData();
           }
         )
         .subscribe();
