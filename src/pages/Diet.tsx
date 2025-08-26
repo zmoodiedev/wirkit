@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { format } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -156,9 +157,21 @@ const Diet = () => {
     { id: 'snack', name: 'Snacks', icon: Moon }
   ];
 
+  const currentDate = new Date();
+
   return (
     <Layout>
       <div className="space-y-6">
+        {/* Date Header */}
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-foreground mb-2">
+            {format(currentDate, 'EEEE, MMMM do')}
+          </h1>
+          <p className="text-muted-foreground">
+            {format(currentDate, 'yyyy')}
+          </p>
+        </div>
+
         {/* Daily Overview */}
         <Card className="bg-gradient-hero text-white border-0">
           <CardHeader>
