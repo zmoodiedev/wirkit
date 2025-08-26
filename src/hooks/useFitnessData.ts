@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 export interface UserGoals {
   daily_calories: number;
@@ -42,6 +43,7 @@ export interface CustomFood {
 }
 
 export const useFitnessData = () => {
+  const { user } = useAuth();
   const [userGoals, setUserGoals] = useState<UserGoals | null>(null);
   const [dailyStats, setDailyStats] = useState<DailyStats | null>(null);
   const [foodEntries, setFoodEntries] = useState<FoodEntry[]>([]);
@@ -296,7 +298,43 @@ export const useFitnessData = () => {
 
   useEffect(() => {
     fetchUserData();
-  }, []);
+
+    // Set up real-time subscription for food entries
+    if (user) {
+      const today = new Date().toISOString().split('T')[0];
+      
+      const channel = supabase
+        .channel('food-entries-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'food_entries',
+            filter: `user_id=eq.${user.id} AND date=eq.${today}`
+          },
+          (payload) => {
+            console.log('New food entry detected:', payload);
+            const newEntry = payload.new as FoodEntry;
+            setFoodEntries(prev => {
+              // Check if entry already exists to avoid duplicates
+              if (prev.some(entry => entry.id === newEntry.id)) {
+                return prev;
+              }
+              const updatedEntries = [...prev, newEntry];
+              // Recalculate stats with new entry
+              recalculateDailyStats(updatedEntries);
+              return updatedEntries;
+            });
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [user]);
 
   return {
     userGoals,
