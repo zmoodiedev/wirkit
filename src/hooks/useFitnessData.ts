@@ -184,7 +184,37 @@ export const useFitnessData = () => {
   };
 
   const updateWaterIntake = async (newWaterIntake: number) => {
-    await updateDailyStats({ water_intake: newWaterIntake });
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const today = getTodayDate();
+      
+      // Update database directly with the new water intake value
+      const { error } = await supabase
+        .from('daily_stats')
+        .upsert({
+          user_id: user.id,
+          date: today,
+          calories_consumed: dailyStats?.calories_consumed || 0,
+          protein_consumed: dailyStats?.protein_consumed || 0,
+          carbs_consumed: dailyStats?.carbs_consumed || 0,
+          fat_consumed: dailyStats?.fat_consumed || 0,
+          water_intake: newWaterIntake,
+          workout_minutes: dailyStats?.workout_minutes || 0
+        }, {
+          onConflict: 'user_id,date'
+        });
+
+      if (!error) {
+        // Update local state
+        setDailyStats(prev => prev ? { ...prev, water_intake: newWaterIntake } : null);
+      } else {
+        console.error('Error updating water intake:', error);
+      }
+    } catch (error) {
+      console.error('Error updating water intake:', error);
+    }
   };
 
   const editFoodEntry = async (id: string, updates: Partial<Omit<FoodEntry, 'id' | 'logged_at' | 'date'>>) => {
