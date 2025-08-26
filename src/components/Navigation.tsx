@@ -81,8 +81,8 @@ const Navigation = () => {
       <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 lg:bg-card lg:border-r lg:border-border">
         <div className="flex flex-col h-full">
           <div className="p-6 border-b border-border">
-            <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              WirkIt
+            <h1 className="text-2xl font-bold bg-clip-text text-transparent">
+              Wirk<span className="bg-gradient-primary">It</span>
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
               Your fitness journey starts here
