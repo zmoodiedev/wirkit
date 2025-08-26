@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar } from '@/components/ui/calendar';
 import Layout from '@/components/Layout';
 import { AddPlannedItemDialog } from '@/components/AddPlannedItemDialog';
+import { EditPlannedItemDialog } from '@/components/EditPlannedItemDialog';
 import { usePlannedItems } from '@/hooks/usePlannedItems';
 import { format, isSameDay } from 'date-fns';
 import { 
@@ -28,6 +29,7 @@ const Planner = () => {
     plannedItems, 
     loading, 
     addPlannedItem, 
+    updatePlannedItem,
     deletePlannedItem, 
     toggleComplete 
   } = usePlannedItems();
@@ -196,6 +198,14 @@ const Planner = () => {
                           </div>
                           
                           <div className="flex items-center gap-2">
+                            <EditPlannedItemDialog 
+                              item={item} 
+                              onUpdate={updatePlannedItem}
+                            >
+                              <Button size="sm" variant="ghost">
+                                <Edit3 size={14} />
+                              </Button>
+                            </EditPlannedItemDialog>
                             <Button 
                               size="sm" 
                               variant="ghost"
@@ -315,13 +325,23 @@ const Planner = () => {
                                   {item.time} {item.duration && `• ${item.duration}m`} {item.calories && `• ${item.calories} cal`}
                                 </div>
                               </div>
-                              <Button 
-                                size="sm" 
-                                variant="ghost"
-                                onClick={() => deletePlannedItem(item.id)}
-                              >
-                                <Trash2 size={14} />
-                              </Button>
+                              <div className="flex items-center gap-1">
+                                <EditPlannedItemDialog 
+                                  item={item} 
+                                  onUpdate={updatePlannedItem}
+                                >
+                                  <Button size="sm" variant="ghost">
+                                    <Edit3 size={14} />
+                                  </Button>
+                                </EditPlannedItemDialog>
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost"
+                                  onClick={() => deletePlannedItem(item.id)}
+                                >
+                                  <Trash2 size={14} />
+                                </Button>
+                              </div>
                             </div>
                           );
                         })
