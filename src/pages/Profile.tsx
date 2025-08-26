@@ -45,7 +45,7 @@ const Profile = () => {
     age: '',
     height: '',
     weight: '',
-    goalWeight: '',
+    goal_weight: '',
     fitness_level: '',
     goals: [] as string[],
   });
@@ -58,7 +58,7 @@ const Profile = () => {
         age: profile.age?.toString() || '',
         height: profile.height || '',
         weight: profile.weight?.toString() || '',
-        weight: profile.goalWeight?.toString() || '',
+        goal_weight: profile.goal_weight?.toString() || '',
         fitness_level: profile.fitness_level || '',
         goals: profile.goals || ['Lose Weight', 'Build Muscle', 'Improve Endurance'],
       });
@@ -75,7 +75,7 @@ const Profile = () => {
       age: formData.age ? parseInt(formData.age) : null,
       height: formData.height || null,
       weight: formData.weight ? parseInt(formData.weight) : null,
-      weight: formData.goalWeight ? parseInt(formData.weight) : null,
+      goal_weight: formData.goal_weight ? parseInt(formData.goal_weight) : null,
       fitness_level: formData.fitness_level || null,
       goals: formData.goals.length > 0 ? formData.goals : null,
     };
@@ -223,8 +223,8 @@ const Profile = () => {
                     <Input
                       id="goalWeight"
                       type="number"
-                      value={formData.goalWeight}
-                      onChange={(e) => setFormData({...formData, goalWeight: e.target.value})}
+                      value={formData.goal_weight}
+                      onChange={(e) => setFormData({...formData, goal_weight: e.target.value})}
                       disabled={!isEditing}
                     />
                   </div>
