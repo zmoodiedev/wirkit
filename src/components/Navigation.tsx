@@ -13,7 +13,8 @@ import {
   User,
   Menu,
   X,
-  LogOut
+  LogOut,
+  HelpCircle
 } from 'lucide-react';
 
 const Navigation = () => {
@@ -116,6 +117,13 @@ const Navigation = () => {
             >
               <User size={20} />
               <span className="font-medium">Profile</span>
+            </Link>
+            <Link
+              to="/help"
+              className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-accent transition-all"
+            >
+              <HelpCircle size={20} />
+              <span className="font-medium">Help</span>
             </Link>
             <Button
               onClick={signOut}
