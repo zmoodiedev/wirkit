@@ -7,6 +7,7 @@ import { AddProgressDialog } from '@/components/AddProgressDialog';
 import { AddRecordDialog } from '@/components/AddRecordDialog';
 import AddProgressPhotoDialog from '@/components/AddProgressPhotoDialog';
 import ProgressPhotoGallery from '@/components/ProgressPhotoGallery';
+import { useProfile } from '@/hooks/useProfile';
 import { useProgress } from '@/hooks/useProgress';
 import { useFitnessData } from '@/hooks/useFitnessData';
 import { format } from 'date-fns';
@@ -37,6 +38,7 @@ const Progress = () => {
     getWeightProgress,
     getExerciseProgress
   } = useProgress();
+  const { profile } = useProfile();
   
   const { userGoals, dailyStats, profile } = useFitnessData();
   
