@@ -39,7 +39,9 @@ const Progress = () => {
     getExerciseProgress
   } = useProgress();
   
-  const { userGoals, dailyStats, profile } = useFitnessData();
+  /*const { userGoals, dailyStats, profile } = useFitnessData();*/
+  const { userGoals, dailyStats } = useFitnessData();
+  const { profile } = useProfile();
   
   if (progressLoading) {
     return (
@@ -59,7 +61,7 @@ const Progress = () => {
   const stats = {
     currentWeight: latestEntry?.weight || 0,
     startWeight: weightProgress.length > 0 ? weightProgress[0].weight : 0,
-    goalWeight: 160, // Default goal weight
+    goalWeight profile.goal_weight, // Default goal weight
     bodyFat: latestEntry?.body_fat_percentage || 0,
     totalWorkouts: exerciseRecords.length,
     streakDays: 0, // TODO: Calculate streak from daily stats
